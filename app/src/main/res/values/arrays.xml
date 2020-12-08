@@ -1,0 +1,23 @@
+<resources>
+
+    <string-array name="period_entries">
+        <item>Off</item>
+        <item>Each 15 minutes</item>
+        <item>Each 30 minutes</item>
+        <item>Each hour</item>
+        <item>Twice a day</item>
+        <item>Each day</item>
+        <item>Twice a week</item>
+    </string-array>
+
+    <string-array name="period_values">
+        <item>0</item>
+        <item>15</item>
+        <item>30</item>
+        <item>60</item>
+        <item>120</item>
+        <item>120</item>
+        <item>120</item>
+    </string-array>
+
+</resources>

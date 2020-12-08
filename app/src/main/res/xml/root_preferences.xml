@@ -1,0 +1,47 @@
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory>
+
+        <EditTextPreference
+            app:defaultValue="cat"
+            app:key="pref_query"
+            app:title="Search for"
+            app:icon="@drawable/ic_search"
+            app:useSimpleSummaryProvider="true" />
+
+        <ListPreference
+            app:defaultValue="0"
+            app:entries="@array/period_entries"
+            app:entryValues="@array/period_values"
+            app:icon="@drawable/ic_period"
+            app:key="pref_period"
+            app:title="Update period"
+            app:useSimpleSummaryProvider="true" />
+
+        <SwitchPreferenceCompat
+            app:icon="@drawable/ic_wifi"
+            app:key="pref_wifi"
+            app:summaryOff="@string/summary_wifi_off"
+            app:summaryOn="@string/summary_wifi_on"
+            app:title="@string/title_wifi_only" />
+
+    </PreferenceCategory>
+
+    <!--
+    <PreferenceCategory app:title="@string/sync_header">
+
+        <SwitchPreferenceCompat
+            app:key="sync"
+            app:title="@string/sync_title" />
+
+        <SwitchPreferenceCompat
+            app:dependency="sync"
+            app:key="attachment"
+            app:summaryOff="@string/attachment_summary_off"
+            app:summaryOn="@string/attachment_summary_on"
+            app:title="@string/attachment_title" />
+
+    </PreferenceCategory>
+    -->
+
+</PreferenceScreen>
