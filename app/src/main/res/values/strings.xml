@@ -1,0 +1,35 @@
+<resources>
+    <string name="app_name">Gallery Wall</string>
+
+    <string name="title_settings">Settings</string>
+
+    <!-- Search Preference -->
+    <string name="title_query">Search Query</string>
+    <string name="summary_query">Search Query Text</string>
+
+    <!-- Wifi Preference -->
+    <string name="title_wifi_only">Wifi Only</string>
+    <string name="summary_wifi_on">Update only if wifi enabled</string>
+    <string name="summary_wifi_off">Update with any connection</string>
+
+    <!-- Wifi Preference -->
+    <string name="title_period">Period</string>
+
+    <!-- Notifications -->
+    <string name="title_set">Set</string>
+    <string name="title_remove">Remove</string>
+
+    <string name="notification_title_set">New wallpaper</string>
+    <string name="notification_error">Unable to load wallpaper</string>
+    <string name="notification_error_content">Something went wrong. \r\n
+        Check your internet connection or try again later.</string>
+    <string name="notification_content_set">Source: %s</string>
+
+    <!-- Sync Preferences -->
+    <string name="sync_title">Sync email periodically</string>
+    <string name="attachment_title">Download incoming attachments</string>
+    <string name="attachment_summary_on">Automatically download attachments for incoming emails
+    </string>
+    <string name="attachment_summary_off">Only download attachments when manually requested</string>
+
+</resources>
