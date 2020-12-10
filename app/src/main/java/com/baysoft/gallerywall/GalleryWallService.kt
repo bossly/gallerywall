@@ -66,6 +66,7 @@ class GalleryWallService : JobService() {
         val context: Context = this
 
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        val settings = Settings(PreferenceManager.getDefaultSharedPreferences(context))
 
         // check if wifi
         if (Settings(PreferenceManager.getDefaultSharedPreferences(context)).wifiOnly) {
@@ -94,7 +95,9 @@ class GalleryWallService : JobService() {
                                 resource: Bitmap?, model: Any?, target: Target<Bitmap>?,
                                 dataSource: DataSource?, isFirstResource: Boolean
                         ): Boolean {
-                            manager.notify(NOTIFICATION_ID, buildNotification(photo, resource))
+                            if (settings.notification) { // if I need to show notification
+                                manager.notify(NOTIFICATION_ID, buildNotification(photo, resource))
+                            }
 
                             // change wallpaper
                             val activateIntent = Intent(context, GalleryWallReceiver::class.java)
@@ -129,7 +132,7 @@ class GalleryWallService : JobService() {
         val timestamp = DateFormat.getTimeFormat(this).format(Date())
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_notification)
+                .setSmallIcon(R.drawable.icon_notification)
             .setContentTitle(getString(R.string.notification_title_set))
             .setContentText("$datestamp at $timestamp")
             .setContentIntent(activityIntent)
