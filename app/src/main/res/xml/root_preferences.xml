@@ -3,9 +3,9 @@
     <PreferenceCategory>
 
         <EditTextPreference
-            app:defaultValue="cat"
+            app:defaultValue="@string/pref_query_default"
             app:key="pref_query"
-            app:title="Search for"
+            app:title="@string/pref_query_title"
             app:icon="@drawable/ic_search"
             app:useSimpleSummaryProvider="true" />
 
@@ -15,16 +15,16 @@
             app:entryValues="@array/period_values"
             app:icon="@drawable/ic_period"
             app:key="pref_period"
-            app:title="Update period"
+            app:title="@string/pref_period_title"
             app:useSimpleSummaryProvider="true" />
 
         <SwitchPreferenceCompat
             app:icon="@drawable/ic_notification"
             app:key="pref_notification"
             app:defaultValue="true"
-            app:summaryOff="Deliver new wallpaper silently"
-            app:summaryOn="When new wallpaper set"
-            app:title="Show notification" />
+            app:summaryOff="@string/pref_notification_off"
+            app:summaryOn="@string/pref_notification_on"
+            app:title="@string/pref_notification_title" />
 
         <SwitchPreferenceCompat
             app:icon="@drawable/ic_wifi"
@@ -34,22 +34,5 @@
             app:title="@string/title_wifi_only" />
 
     </PreferenceCategory>
-
-    <!--
-    <PreferenceCategory app:title="@string/sync_header">
-
-        <SwitchPreferenceCompat
-            app:key="sync"
-            app:title="@string/sync_title" />
-
-        <SwitchPreferenceCompat
-            app:dependency="sync"
-            app:key="attachment"
-            app:summaryOff="@string/attachment_summary_off"
-            app:summaryOn="@string/attachment_summary_on"
-            app:title="@string/attachment_title" />
-
-    </PreferenceCategory>
-    -->
 
 </PreferenceScreen>

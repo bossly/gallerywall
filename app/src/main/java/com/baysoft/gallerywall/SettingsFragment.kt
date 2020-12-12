@@ -1,13 +1,8 @@
 package com.baysoft.gallerywall
 
-import android.app.job.JobInfo
-import android.app.job.JobScheduler
-import android.content.ComponentName
-import android.content.Context
 import android.os.Bundle
 import androidx.preference.ListPreference
 import androidx.preference.PreferenceFragmentCompat
-import java.util.concurrent.TimeUnit
 
 class SettingsFragment : PreferenceFragmentCompat() {
 
@@ -19,9 +14,9 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
                 newValue.toString().toLongOrNull()?.run {
                     when (this) {
-                        0L -> cancelSchedule()
+                        0L -> GalleryWall.cancelSchedule(requireActivity())
                         else -> {
-                            schedule(this)
+                            GalleryWall.schedule(requireActivity(), this)
                         }
                     }
                 }
@@ -35,33 +30,4 @@ class SettingsFragment : PreferenceFragmentCompat() {
     private fun clearPrefs() {
         preferenceManager.sharedPreferences.edit().clear().apply()
     }
-
-    private fun cancelSchedule() {
-        val jobId = 1102
-        val jobScheduler =
-            requireActivity().getSystemService(Context.JOB_SCHEDULER_SERVICE) as JobScheduler
-        jobScheduler.cancel(jobId)
-    }
-
-    // https://habr.com/ru/post/339012/
-    private fun schedule(minutes: Long) {
-        val component = ComponentName(requireActivity(), GalleryWallService::class.java)
-        val jobId = 1102
-        val myJob = JobInfo.Builder(jobId, component)
-            .setBackoffCriteria(
-                TimeUnit.SECONDS.toMillis(10),
-                JobInfo.BACKOFF_POLICY_LINEAR
-            )
-            .setPeriodic(TimeUnit.MINUTES.toMillis(minutes))
-            .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-            .setRequiresDeviceIdle(false)
-            .setRequiresCharging(false)
-            .build()
-
-        val jobScheduler =
-            requireActivity().getSystemService(Context.JOB_SCHEDULER_SERVICE) as JobScheduler
-        jobScheduler.cancel(jobId)
-        jobScheduler.schedule(myJob)
-    }
-
 }

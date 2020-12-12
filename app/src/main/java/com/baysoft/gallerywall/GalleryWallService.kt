@@ -13,7 +13,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
-import android.text.format.DateFormat
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.preference.PreferenceManager
@@ -24,7 +24,6 @@ import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import java.util.*
 
 
 // https://developer.android.com/training/notify-user/expanded#kotlin
@@ -51,20 +50,7 @@ class GalleryWallService : JobService() {
         }
     }
 
-    private suspend fun loadImage(): String {
-        val settings = Settings(PreferenceManager.getDefaultSharedPreferences(this))
-        val result = ImageProvider.serviceApi.loadPixabay(BuildConfig.PIXABAY_API, settings.query)
-        result?.hits?.run {
-            val index = indices.random()
-            return get(index).imageURL
-        }
-
-        return ""
-    }
-
-    private fun showNotification() {
-        val context: Context = this
-
+    private fun showNotification(context: Context = this) {
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val settings = Settings(PreferenceManager.getDefaultSharedPreferences(context))
 
@@ -73,21 +59,25 @@ class GalleryWallService : JobService() {
             val connManager = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
             val active = connManager.getNetworkCapabilities(connManager.activeNetwork)
 
-            if (!active.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-                return
+            active?.let {
+                if (!it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                    return
+                }
             }
         }
 
-        GalleryAppWidget.updateLoading(this)
+        GalleryAppWidget.updateLoading(context)
 
         GlobalScope.launch {
-            val photo = loadImage()
+            val photo = GalleryWall.fetchImageURL(context)
+            Log.d("GalleryWallService", photo)
             Glide.with(context).asBitmap().load(photo)
                     .addListener(object : RequestListener<Bitmap> {
                         override fun onLoadFailed(
                                 e: GlideException?, model: Any?,
                                 target: Target<Bitmap>?, isFirstResource: Boolean
                         ): Boolean {
+                            GalleryAppWidget.updateLoaded(context)
                             return false
                         }
 
@@ -100,9 +90,7 @@ class GalleryWallService : JobService() {
                             }
 
                             // change wallpaper
-                            val activateIntent = Intent(context, GalleryWallReceiver::class.java)
-                            activateIntent.putExtra("EXTRA_URL", photo)
-                            sendBroadcast(activateIntent)
+                            context.sendBroadcast(GalleryWallReceiver.updateIntent(context, photo))
 
                             return false
                         }
@@ -111,42 +99,41 @@ class GalleryWallService : JobService() {
     }
 
     private fun buildNotification(url: String, image: Bitmap?): Notification? {
-        val resultIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-        val activateIntent = Intent(this, GalleryWallReceiver::class.java)
-        activateIntent.putExtra("EXTRA_URL", url)
 
+        // load next one
+        val updateIntent = GalleryWallReceiver.updateIntent(this, null)
         val activatePending = PendingIntent.getBroadcast(
-                this, 1, activateIntent, PendingIntent.FLAG_UPDATE_CURRENT
+                this, 1, updateIntent, PendingIntent.FLAG_UPDATE_CURRENT
         )
 
+        // view the source
+        val resultIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
         val resultPendingIntent = PendingIntent.getActivity(
                 this, 1, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT
         )
-        val inActivity = Intent(this, MainActivity::class.java)
-        inActivity.putExtra("key", "value1")
-        val activityIntent = PendingIntent.getActivity(
-                this, 2, inActivity, PendingIntent.FLAG_ONE_SHOT
-        )
 
-        val datestamp = DateFormat.getLongDateFormat(this).format(Date())
-        val timestamp = DateFormat.getTimeFormat(this).format(Date())
+        // open app
+        val inActivity = Intent(this, MainActivity::class.java)
+        val activityIntent = PendingIntent.getActivity(
+                this, 1, inActivity, PendingIntent.FLAG_ONE_SHOT
+        )
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.drawable.icon_notification)
-            .setContentTitle(getString(R.string.notification_title_set))
-            .setContentText("$datestamp at $timestamp")
-            .setContentIntent(activityIntent)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setContentTitle(getString(R.string.notification_title_set))
+                .setContentIntent(activityIntent)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
 
         image?.let {
+            builder.setLargeIcon(image)
             builder.setStyle(
                     NotificationCompat.BigPictureStyle()
                             .bigPicture(image)
             )
         }
 
-        builder.addAction(R.drawable.ic_launch_gray_24, "Next", resultPendingIntent)
-        builder.addAction(R.drawable.ic_refresh_gray_32, "Activate", activatePending)
+        builder.addAction(R.drawable.ic_refresh_gray_32, getString(R.string.notification_action_next), activatePending)
+        builder.addAction(R.drawable.ic_launch_gray_24, getString(R.string.notification_action_open), resultPendingIntent)
 
         builder.setOngoing(false).setAutoCancel(true)
 
@@ -159,7 +146,11 @@ class GalleryWallService : JobService() {
     }
 
     override fun onStartJob(params: JobParameters?): Boolean {
-        showNotification()
+        if (BuildConfig.DEBUG) {
+            // immediately show notification when Job started
+            showNotification()
+        }
+
         return true
     }
 
