@@ -1,4 +1,6 @@
 name: Android CI
+env:
+  PIXABAY_API: ${{ secrets.PIXABAY_API }}
 
 on:
   push:
