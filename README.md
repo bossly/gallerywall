@@ -1,5 +1,7 @@
 # GalleryWall
 
+[![Build status](https://build.appcenter.ms/v0.1/apps/8fb9dae8-8516-4110-805d-54b677ecc1a6/branches/master/badge)](https://appcenter.ms)
+
 [![GooglePlay](https://play.google.com/intl/en_us/badges/images/badge_new.png)](https://play.google.com/store/apps/details?id=com.baysoft.gallerywall)
 
 Great application to refresh your working desktop with a beautiful picture. It refreshes every time when you unlock your phone, even if you just open an application.
