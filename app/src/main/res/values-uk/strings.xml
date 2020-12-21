@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Gallery Wall</string>
+    <string name="title_settings">Налаштування</string>
+    <string name="notification_action_next">Наступна</string>
+    <string name="notification_action_open">Завантажити</string>
+    <string name="notification_title_set">Нові шпалери</string>
+    <string name="pref_query_title">Шукати</string>
+    <string name="pref_query_default">кіт</string>
+    <string name="pref_period_title">Період оновлення</string>
+    <string name="title_wifi_only">Тільки при Wifi</string>
+    <string name="summary_wifi_on">Оновлювати тільки через Wifi</string>
+    <string name="summary_wifi_off">Оновлювати при будь якому підключені</string>
+    <string name="pref_notification_title">Показувати повідомлення</string>
+    <string name="pref_notification_off">Оновлювати шпалери тихо</string>
+    <string name="pref_notification_on">Коли нові шпалери встановлені</string>
+</resources>
