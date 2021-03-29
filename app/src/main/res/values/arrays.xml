@@ -15,9 +15,9 @@
         <item>15</item>
         <item>30</item>
         <item>60</item>
-        <item>120</item>
-        <item>120</item>
-        <item>120</item>
+        <item>720</item>
+        <item>1440</item>
+        <item>5040</item>
     </string-array>
 
 </resources>

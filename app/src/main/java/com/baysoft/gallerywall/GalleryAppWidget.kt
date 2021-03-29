@@ -29,6 +29,7 @@ class GalleryAppWidget : AppWidgetProvider() {
         private fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
             val views = RemoteViews(context.packageName, R.layout.app_widget)
             val activateIntent = Intent(context, GalleryWallReceiver::class.java)
+            activateIntent.action = "update"
 
             val activatePending = PendingIntent.getBroadcast(
                     context, 1, activateIntent, PendingIntent.FLAG_UPDATE_CURRENT

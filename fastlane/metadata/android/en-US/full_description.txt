@@ -1,0 +1,5 @@
+Great application to refresh your working desktop with a beautiful picture. It refreshes every time when you unlock your phone, even if you just open an application.
+
+You can set any text and application understands what picture you want to see (E.g.: "tech", "flowers", "girls", "babes"). You don't need to worry about battery usage because the application wakes only once an hour and uses the latest API system for that.
+
+This application is open source: https://github.com/bossly/gallerywall
