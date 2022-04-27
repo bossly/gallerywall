@@ -10,7 +10,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         setPreferencesFromResource(R.xml.root_preferences, rootKey)
 
         findPreference<ListPreference>(Settings.PREF_PERIOD)?.run {
-            setOnPreferenceChangeListener { pref, newValue ->
+            setOnPreferenceChangeListener { _, newValue ->
 
                 newValue.toString().toLongOrNull()?.run {
                     when (this) {
@@ -28,6 +28,6 @@ class SettingsFragment : PreferenceFragmentCompat() {
     }
 
     private fun clearPrefs() {
-        preferenceManager.sharedPreferences.edit().clear().apply()
+        preferenceManager.sharedPreferences?.edit()?.clear()?.apply()
     }
 }
