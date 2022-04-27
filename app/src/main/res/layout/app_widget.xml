@@ -14,6 +14,7 @@
         android:layout_height="match_parent"
         android:layout_weight="1"
         android:background="@drawable/button"
+        android:contentDescription="@string/title_settings"
         android:src="@drawable/ic_settings_gray_32" />
 
     <FrameLayout
@@ -26,6 +27,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@drawable/button"
+            android:contentDescription="@string/pref_period_title"
             android:src="@drawable/ic_refresh_gray_32" />
 
         <ProgressBar
