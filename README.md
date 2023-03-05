@@ -1,8 +1,8 @@
 # GalleryWall
 
-[![Actions Status](https://github.com/bossly/gallerywall/workflows/Android%20CI/badge.svg)](https://github.com/bossly/gallerywall/actions) 
-[![Build status](https://build.appcenter.ms/v0.1/apps/8fb9dae8-8516-4110-805d-54b677ecc1a6/branches/master/badge)](https://appcenter.ms)
-
+[![Actions Status](https://github.com/bossly/gallerywall/workflows/Android%20CI/badge.svg)](https://github.com/bossly/gallerywall/actions)
+[![The most recent tag](https://img.shields.io/github/v/release/bossly/gallerywall.svg?logo=github)](https://github.com/bossly/gallerywall/tags)
+[![API](https://img.shields.io/badge/API-26%2B-orange.svg?logo=android)](https://android-arsenal.com/api?level=26)
 [![GooglePlay](https://play.google.com/intl/en_us/badges/images/badge_new.png)](https://play.google.com/store/apps/details?id=com.baysoft.gallerywall)
 
 | ![Primary screen](screens/screen1.png) | ![Secondary screen](screens/screen2.png) | ![Widget screen](screens/screen3.png) |

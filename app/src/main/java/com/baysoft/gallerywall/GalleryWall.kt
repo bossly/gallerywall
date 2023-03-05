@@ -24,7 +24,6 @@ class GalleryWall {
             jobScheduler.cancel(jobId)
         }
 
-        // https://habr.com/ru/post/339012/
         fun schedule(context: Context, minutes: Long? = null) {
             val period = minutes
                     ?: Settings(PreferenceManager.getDefaultSharedPreferences(context)).period
