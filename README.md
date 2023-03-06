@@ -16,7 +16,7 @@ It's optimized for the low battery usage using latest system's API.
 
 Currently there only Pixabay service used to fetch wallpaper images.
 
-Edit `~/.gradle/gradle.properties` with your api key from https://pixabay.com/service/about/api/
+Edit `local.properties` with your api key from https://pixabay.com/service/about/api/
 
 
 ```groovy

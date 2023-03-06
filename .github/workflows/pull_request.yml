@@ -12,7 +12,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: set up JDK 11
         uses: actions/setup-java@v1
@@ -32,6 +32,7 @@ jobs:
         env:
           APP_BUILD_NUMBER: ${{ env.GITHUB_RUN_ID }}
           APP_VERSION_CODE: ${{ github.run_number }}
+          APP_VERSION_NAME: ${{ github.ref_name }}
           PIXABAY_API: ${{ secrets.PIXABAY_API }}
         with:
           lane: unit_test
