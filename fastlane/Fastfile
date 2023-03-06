@@ -21,8 +21,12 @@ platform :android do
 
   desc "Run unit tests"
   lane :unit_test do
-    gradle(task: "assembleDebug")
-    gradle(task: "assembleDebugUnitTest")
+    properties = {
+        "android.injected.version.code" => ENV["APP_VERSION_CODE"],
+        "android.injected.version.name" => ENV["APP_VERSION_NAME"],
+    }
+    gradle(task: "assembleDebug", properties: properties, flags: "-S")
+    gradle(task: "assembleDebugUnitTest", properties: properties, flags: "-S")
   end
 
   desc "Capture screenshots"
