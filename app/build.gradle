@@ -17,7 +17,7 @@ android {
         applicationId "com.baysoft.gallerywall"
         minSdk 26
         targetSdk 33
-        versionCode 11
+        versionCode 33
         versionName "2.1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"

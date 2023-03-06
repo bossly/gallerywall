@@ -13,12 +13,11 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
-import org.junit.Before
-import org.junit.Rule
-import org.junit.Test
+import org.junit.*
 import org.junit.runner.RunWith
 import tools.fastlane.screengrab.Screengrab
 import tools.fastlane.screengrab.UiAutomatorScreenshotStrategy
+import tools.fastlane.screengrab.cleanstatusbar.CleanStatusBar
 import tools.fastlane.screengrab.locale.LocaleTestRule
 
 
@@ -38,6 +37,12 @@ class MainActivityInstrumentedTest {
         val extras: Bundle = InstrumentationRegistry.getArguments()
         // https://docs.fastlane.tools/getting-started/android/screenshots/#advanced-screengrab
         Log.d("extras", extras.toString())
+        CleanStatusBar.enableWithDefaults();
+    }
+
+    @After
+    fun afterAll() {
+        CleanStatusBar.disable()
     }
 
     @Test
