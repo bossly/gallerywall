@@ -103,19 +103,19 @@ class GalleryWallService : JobService() {
         // load next one
         val updateIntent = GalleryWallReceiver.updateIntent(this, null)
         val activatePending = PendingIntent.getBroadcast(
-                this, 1, updateIntent, PendingIntent.FLAG_UPDATE_CURRENT
+                this, 1, updateIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         // view the source
         val resultIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
         val resultPendingIntent = PendingIntent.getActivity(
-                this, 1, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT
+                this, 1, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         // open app
         val inActivity = Intent(this, MainActivity::class.java)
         val activityIntent = PendingIntent.getActivity(
-                this, 1, inActivity, PendingIntent.FLAG_ONE_SHOT
+                this, 1, inActivity, PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
         )
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)

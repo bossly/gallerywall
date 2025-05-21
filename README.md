@@ -2,7 +2,7 @@
 
 [![Actions Status](https://github.com/bossly/gallerywall/workflows/Create%20Release/badge.svg)](https://github.com/bossly/gallerywall/actions)
 [![The most recent tag](https://img.shields.io/github/v/release/bossly/gallerywall.svg?logo=github)](https://github.com/bossly/gallerywall/tags)
-[![API](https://img.shields.io/badge/API-26%2B-orange.svg?logo=android)](https://android-arsenal.com/api?level=26)
+[![API](https://img.shields.io/badge/API-31%2B-orange.svg?logo=android)](https://android-arsenal.com/api?level=31)
 [![StandWithUkraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/badges/StandWithUkraine.svg)](https://github.com/vshymanskyy/StandWithUkraine/blob/main/docs/README.md)
 
 [![GooglePlay](https://play.google.com/intl/en_us/badges/images/badge_new.png)](https://play.google.com/store/apps/details?id=com.baysoft.gallerywall)

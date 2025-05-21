@@ -1,6 +1,5 @@
 package com.baysoft.gallerywall
 
-
 import android.os.Bundle
 import android.util.Log
 import androidx.recyclerview.widget.RecyclerView
@@ -19,7 +18,6 @@ import tools.fastlane.screengrab.Screengrab
 import tools.fastlane.screengrab.UiAutomatorScreenshotStrategy
 import tools.fastlane.screengrab.cleanstatusbar.CleanStatusBar
 import tools.fastlane.screengrab.locale.LocaleTestRule
-
 
 @LargeTest
 @RunWith(AndroidJUnit4::class)

@@ -25,7 +25,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
             }
         }
 
-    }
+    } 
 
     private fun clearPrefs() {
         preferenceManager.sharedPreferences?.edit()?.clear()?.apply()
