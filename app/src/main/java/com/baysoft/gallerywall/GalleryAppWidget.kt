@@ -32,14 +32,14 @@ class GalleryAppWidget : AppWidgetProvider() {
             activateIntent.action = "update"
 
             val activatePending = PendingIntent.getBroadcast(
-                    context, 1, activateIntent, PendingIntent.FLAG_UPDATE_CURRENT
+                    context, 1, activateIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
             views.setOnClickPendingIntent(R.id.v_btn_update, activatePending)
 
             val inActivity = Intent(context, MainActivity::class.java)
             inActivity.putExtra("key", "value1")
-            val activityIntent = PendingIntent.getActivity(context, 0, inActivity, 0)
+            val activityIntent = PendingIntent.getActivity(context, 0, inActivity, PendingIntent.FLAG_IMMUTABLE)
             views.setOnClickPendingIntent(R.id.v_btn_settings, activityIntent)
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
