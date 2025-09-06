@@ -2,6 +2,7 @@ plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
     id 'androidx.navigation.safeargs.kotlin'
+    id 'kotlin-kapt'
 }
 
 Properties properties = new Properties()
@@ -14,7 +15,7 @@ android {
 
     defaultConfig {
         applicationId "com.baysoft.gallerywall"
-        minSdk 35
+        minSdk 31
         compileSdk 36
         versionCode 35
         versionName "2.3.0"
@@ -61,6 +62,12 @@ dependencies {
     implementation "com.squareup.retrofit2:converter-gson:$retrofitVersion"
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1'
     implementation 'com.github.bumptech.glide:glide:4.11.0'
+    implementation 'androidx.room:room-common-jvm:2.7.2'
+    implementation 'androidx.room:room-ktx:2.7.2'
+    implementation 'androidx.room:room-runtime:2.7.2'
+    implementation 'androidx.navigation:navigation-fragment-ktx:2.9.3'
+    implementation 'androidx.navigation:navigation-ui-ktx:2.9.3'
+    kapt 'androidx.room:room-compiler:2.7.2'
     androidTestImplementation 'androidx.test.espresso:espresso-contrib:3.6.1'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
 

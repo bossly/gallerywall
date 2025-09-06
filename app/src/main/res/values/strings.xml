@@ -22,4 +22,8 @@
     <string name="pref_notification_off">Deliver new wallpaper silently</string>
     <string name="pref_notification_on">When new wallpaper set</string>
 
+    <!-- Home/Wallpapers -->
+    <string name="wallpaper">Wallpaper</string>
+    <string name="no_recent_wallpapers">No recent wallpapers found</string>
+    <string name="refresh">Refresh</string>
 </resources>

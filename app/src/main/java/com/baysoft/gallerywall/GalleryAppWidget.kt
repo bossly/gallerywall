@@ -29,17 +29,18 @@ class GalleryAppWidget : AppWidgetProvider() {
         private fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
             val views = RemoteViews(context.packageName, R.layout.app_widget)
             val activateIntent = Intent(context, GalleryWallReceiver::class.java)
-            activateIntent.action = "update"
-
+            activateIntent.action = "com.baysoft.gallerywall.WIDGET_REFRESH"
+            // Use unique data URI to ensure PendingIntent is always unique
+            activateIntent.data = android.net.Uri.parse("gallerywall://refresh/" + System.currentTimeMillis() + "/" + appWidgetId)
             val activatePending = PendingIntent.getBroadcast(
-                    context, 1, activateIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                context, appWidgetId, activateIntent, PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
             views.setOnClickPendingIntent(R.id.v_btn_update, activatePending)
 
             val inActivity = Intent(context, MainActivity::class.java)
             inActivity.putExtra("key", "value1")
-            val activityIntent = PendingIntent.getActivity(context, 0, inActivity, PendingIntent.FLAG_IMMUTABLE)
+            val activityIntent = PendingIntent.getActivity(context, appWidgetId, inActivity, PendingIntent.FLAG_IMMUTABLE)
             views.setOnClickPendingIntent(R.id.v_btn_settings, activityIntent)
 
             appWidgetManager.updateAppWidget(appWidgetId, views)

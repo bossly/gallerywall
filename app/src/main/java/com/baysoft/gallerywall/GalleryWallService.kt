@@ -89,6 +89,16 @@ class GalleryWallService : JobService() {
                                 manager.notify(NOTIFICATION_ID, buildNotification(photo, resource))
                             }
 
+                            // Save wallpaper to database as recent
+                            GlobalScope.launch {
+                                val db = com.baysoft.gallerywall.data.WallpaperDatabase.getInstance(context)
+                                val repo = com.baysoft.gallerywall.data.WallpaperRepository(db.wallpaperDao())
+                                repo.addWallpaper(photo)
+                                // Notify UI to update recents
+                                val updateIntent = Intent("com.baysoft.gallerywall.WALLPAPER_SET")
+                                context.sendBroadcast(updateIntent)
+                            }
+
                             // change wallpaper
                             context.sendBroadcast(GalleryWallReceiver.updateIntent(context, photo))
 
