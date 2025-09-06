@@ -17,6 +17,7 @@ import com.baysoft.gallerywall.R
 import com.baysoft.gallerywall.data.WallpaperDatabase
 import com.baysoft.gallerywall.data.WallpaperRepository
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class HomeFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,14 +50,29 @@ class HomeFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_home, container, false)
-        recyclerView = view.findViewById(R.id.recyclerView)
-        recyclerView.layoutManager = GridLayoutManager(context, 2)
-        adapter = WallpaperAdapter()
+    recyclerView = view.findViewById(R.id.recyclerView)
+    recyclerView.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(context)
+        adapter = WallpaperAdapter { wallpaper ->
+            // Set wallpaper in background thread
+            lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                try {
+                    val context = requireContext().applicationContext
+                    val bitmap = com.bumptech.glide.Glide.with(context)
+                        .asBitmap()
+                        .load(wallpaper.filePath)
+                        .submit()
+                        .get()
+                    com.baysoft.gallerywall.GalleryWall.updateWallpaper(context, bitmap)
+                } catch (e: Exception) {
+                    // Optionally show error
+                }
+            }
+        }
         recyclerView.adapter = adapter
         placeholderText = view.findViewById(R.id.placeholderText)
-    refreshButton = view.findViewById(R.id.refreshButton)
-    refreshProgress = view.findViewById(R.id.refreshProgress)
-    return view
+        refreshButton = view.findViewById(R.id.refreshButton)
+        refreshProgress = view.findViewById(R.id.refreshProgress)
+        return view
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {

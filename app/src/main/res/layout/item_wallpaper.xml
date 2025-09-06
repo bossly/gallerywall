@@ -26,18 +26,34 @@
             android:background="@android:color/transparent"
             android:contentDescription="@string/wallpaper" />
 
-        <TextView
-            android:id="@+id/dateText"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:paddingTop="6dp"
-            android:paddingBottom="10dp"
-            android:textAppearance="?android:attr/textAppearanceSmall"
-            android:textColor="@android:color/darker_gray"
-            android:gravity="end"
-            android:text="" />
+            android:orientation="horizontal"
+            android:gravity="end|center_vertical"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:id="@+id/dateText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:textColor="@android:color/darker_gray"
+                android:gravity="start|center_vertical"
+                android:text="" />
+
+            <Button
+                android:id="@+id/btnSetWallpaper"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="4dp"
+                android:text="@string/set_wallpaper"
+                android:src="@android:drawable/ic_menu_slideshow"
+                android:tint="@color/design_default_color_primary" />
+        </LinearLayout>
     </LinearLayout>
 
 </com.google.android.material.card.MaterialCardView>

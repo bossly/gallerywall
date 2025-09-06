@@ -12,26 +12,33 @@ import androidx.recyclerview.widget.RecyclerView
 import com.baysoft.gallerywall.R
 import com.baysoft.gallerywall.data.WallpaperEntity
 
-class WallpaperAdapter : ListAdapter<WallpaperEntity, WallpaperAdapter.WallpaperViewHolder>(DIFF) {
+
+class WallpaperAdapter(
+    private val onSetWallpaper: (WallpaperEntity) -> Unit
+) : ListAdapter<WallpaperEntity, WallpaperAdapter.WallpaperViewHolder>(DIFF) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): WallpaperViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_wallpaper, parent, false)
-        return WallpaperViewHolder(view)
+        return WallpaperViewHolder(view, onSetWallpaper)
     }
 
     override fun onBindViewHolder(holder: WallpaperViewHolder, position: Int) {
         holder.bind(getItem(position))
     }
 
-    class WallpaperViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    class WallpaperViewHolder(itemView: View, val onSetWallpaper: (WallpaperEntity) -> Unit) : RecyclerView.ViewHolder(itemView) {
         private val imageView: ImageView = itemView.findViewById(R.id.imageView)
         private val dateText: TextView = itemView.findViewById(R.id.dateText)
+        private val btnSetWallpaper: View? = itemView.findViewById(R.id.btnSetWallpaper)
         fun bind(wallpaper: WallpaperEntity) {
             Glide.with(imageView.context)
-                .load(wallpaper.imagePath)
+                .load(java.io.File(wallpaper.filePath))
                 .centerCrop()
                 .into(imageView)
             val date = java.text.DateFormat.getDateTimeInstance().format(java.util.Date(wallpaper.dateAdded))
             dateText.text = date
+            btnSetWallpaper?.setOnClickListener {
+                onSetWallpaper(wallpaper)
+            }
         }
     }
 

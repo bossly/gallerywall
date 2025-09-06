@@ -6,6 +6,6 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "wallpapers")
 data class WallpaperEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val imagePath: String,
+    val filePath: String,
     val dateAdded: Long // Store as epoch millis
 )

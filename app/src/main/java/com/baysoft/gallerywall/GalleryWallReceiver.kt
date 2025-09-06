@@ -3,7 +3,11 @@ package com.baysoft.gallerywall
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.app.NotificationManager
+import android.app.NotificationChannel
+import android.os.Build
 import android.graphics.Bitmap
+import androidx.core.app.NotificationCompat
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
@@ -58,11 +62,36 @@ class GalleryWallReceiver : BroadcastReceiver() {
                                     // change wallpaper
                                     GalleryWall.updateWallpaper(it, resource)
                                     GalleryAppWidget.updateLoaded(it)
-                                    // Save to recents and notify UI
+                                    // Show notification
+                                    val channelId = "_gallerywall"
+                                    val notificationManager = it.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                        val channel = NotificationChannel(channelId, it.getString(R.string.app_name), NotificationManager.IMPORTANCE_DEFAULT)
+                                        notificationManager.createNotificationChannel(channel)
+                                    }
+                                    val builder = NotificationCompat.Builder(it, channelId)
+                                        .setSmallIcon(R.drawable.icon_notification)
+                                        .setContentTitle(it.getString(R.string.notification_title_set))
+                                        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                                        .setOngoing(false)
+                                        .setAutoCancel(true)
+                                    resource?.let { bmp ->
+                                        builder.setLargeIcon(bmp)
+                                        builder.setStyle(NotificationCompat.BigPictureStyle().bigPicture(bmp))
+                                    }
+                                    notificationManager.notify(1, builder.build())
+                                    // Save bitmap to file and store file path in recents
                                     GlobalScope.launch {
+                                        val filePath = resource?.let { bmp ->
+                                            val file = java.io.File(it.filesDir, "wallpaper_${System.currentTimeMillis()}.jpg")
+                                            java.io.FileOutputStream(file).use { out ->
+                                                bmp.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                                            }
+                                            file.absolutePath
+                                        } ?: imageUrl
                                         val db = com.baysoft.gallerywall.data.WallpaperDatabase.getInstance(it)
                                         val repo = com.baysoft.gallerywall.data.WallpaperRepository(db.wallpaperDao())
-                                        repo.addWallpaper(imageUrl)
+                                        repo.addWallpaper(filePath)
                                         val updateIntent = Intent("com.baysoft.gallerywall.WALLPAPER_SET")
                                         it.sendBroadcast(updateIntent)
                                     }
@@ -94,11 +123,18 @@ class GalleryWallReceiver : BroadcastReceiver() {
                                     GalleryWall.updateWallpaper(it, resource)
                                     // Always reset widget state
                                     GalleryAppWidget.updateLoaded(it)
-                                    // Save to recents and notify UI
+                                    // Save bitmap to file and store file path in recents
                                     GlobalScope.launch {
+                                        val filePath = resource?.let { bmp ->
+                                            val file = java.io.File(it.filesDir, "wallpaper_${System.currentTimeMillis()}.jpg")
+                                            java.io.FileOutputStream(file).use { out ->
+                                                bmp.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                                            }
+                                            file.absolutePath
+                                        } ?: imageUrl
                                         val db = com.baysoft.gallerywall.data.WallpaperDatabase.getInstance(it)
                                         val repo = com.baysoft.gallerywall.data.WallpaperRepository(db.wallpaperDao())
-                                        repo.addWallpaper(imageUrl)
+                                        repo.addWallpaper(filePath)
                                         val updateIntent = Intent("com.baysoft.gallerywall.WALLPAPER_SET")
                                         it.sendBroadcast(updateIntent)
                                     }

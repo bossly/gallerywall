@@ -91,9 +91,16 @@ class GalleryWallService : JobService() {
 
                             // Save wallpaper to database as recent
                             GlobalScope.launch {
+                                val filePath = resource?.let { bmp ->
+                                    val file = java.io.File(context.filesDir, "wallpaper_${System.currentTimeMillis()}.jpg")
+                                    java.io.FileOutputStream(file).use { out ->
+                                        bmp.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                                    }
+                                    file.absolutePath
+                                } ?: photo
                                 val db = com.baysoft.gallerywall.data.WallpaperDatabase.getInstance(context)
                                 val repo = com.baysoft.gallerywall.data.WallpaperRepository(db.wallpaperDao())
-                                repo.addWallpaper(photo)
+                                repo.addWallpaper(filePath)
                                 // Notify UI to update recents
                                 val updateIntent = Intent("com.baysoft.gallerywall.WALLPAPER_SET")
                                 context.sendBroadcast(updateIntent)
