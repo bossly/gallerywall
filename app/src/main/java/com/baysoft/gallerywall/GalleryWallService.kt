@@ -35,7 +35,6 @@ class GalleryWallService : JobService() {
 
         // Create the NotificationChannel, but only on API 26+ because
         // the NotificationChannel class is new and not in the support library
-        @RequiresApi(Build.VERSION_CODES.O)
         fun createNotificationChannel(context: Context) {
             val name = context.getString(R.string.app_name)
             val description = context.getString(R.string.app_name)
@@ -66,8 +65,6 @@ class GalleryWallService : JobService() {
             }
         }
 
-        GalleryAppWidget.updateLoading(context)
-
         GlobalScope.launch {
             val photo = GalleryWall.fetchImageURL(context)
             Log.d("GalleryWallService", photo)
@@ -77,7 +74,6 @@ class GalleryWallService : JobService() {
                                 e: GlideException?, model: Any?,
                                 target: Target<Bitmap>?, isFirstResource: Boolean
                         ): Boolean {
-                            GalleryAppWidget.updateLoaded(context)
                             return false
                         }
 
@@ -87,23 +83,6 @@ class GalleryWallService : JobService() {
                         ): Boolean {
                             if (settings.notification) { // if I need to show notification
                                 manager.notify(NOTIFICATION_ID, buildNotification(photo, resource))
-                            }
-
-                            // Save wallpaper to database as recent
-                            GlobalScope.launch {
-                                val filePath = resource?.let { bmp ->
-                                    val file = java.io.File(context.filesDir, "wallpaper_${System.currentTimeMillis()}.jpg")
-                                    java.io.FileOutputStream(file).use { out ->
-                                        bmp.compress(Bitmap.CompressFormat.JPEG, 95, out)
-                                    }
-                                    file.absolutePath
-                                } ?: photo
-                                val db = com.baysoft.gallerywall.data.WallpaperDatabase.getInstance(context)
-                                val repo = com.baysoft.gallerywall.data.WallpaperRepository(db.wallpaperDao())
-                                repo.addWallpaper(filePath)
-                                // Notify UI to update recents
-                                val updateIntent = Intent("com.baysoft.gallerywall.WALLPAPER_SET")
-                                context.sendBroadcast(updateIntent)
                             }
 
                             // change wallpaper
@@ -121,12 +100,6 @@ class GalleryWallService : JobService() {
         val updateIntent = GalleryWallReceiver.updateIntent(this, null)
         val activatePending = PendingIntent.getBroadcast(
                 this, 1, updateIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        // view the source
-        val resultIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-        val resultPendingIntent = PendingIntent.getActivity(
-                this, 1, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         // open app
@@ -150,8 +123,6 @@ class GalleryWallService : JobService() {
         }
 
         builder.addAction(R.drawable.ic_refresh_gray_32, getString(R.string.notification_action_next), activatePending)
-        builder.addAction(R.drawable.ic_launch_gray_24, getString(R.string.notification_action_open), resultPendingIntent)
-
         builder.setOngoing(false).setAutoCancel(true)
 
         return builder.build()
@@ -163,11 +134,8 @@ class GalleryWallService : JobService() {
     }
 
     override fun onStartJob(params: JobParameters?): Boolean {
-        if (BuildConfig.DEBUG) {
-            // immediately show notification when Job started
-            showNotification()
-        }
-
+        // immediately show notification when Job started
+        showNotification()
         return true
     }
 

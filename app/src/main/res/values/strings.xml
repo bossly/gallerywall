@@ -5,7 +5,6 @@
 
     <!-- Notifications -->
     <string name="notification_action_next">Next</string>
-    <string name="notification_action_open">Download</string>
     <string name="notification_title_set">New wallpaper</string>
 
     <!-- Preferences -->
