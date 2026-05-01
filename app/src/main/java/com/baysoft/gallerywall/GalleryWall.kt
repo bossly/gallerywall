@@ -1,72 +1,93 @@
 package com.baysoft.gallerywall
 
 import android.app.WallpaperManager
-import android.app.job.JobInfo
-import android.app.job.JobScheduler
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.util.Log
 import androidx.preference.PreferenceManager
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.DataSource
-import com.bumptech.glide.load.engine.GlideException
-import com.bumptech.glide.request.RequestListener
-import com.bumptech.glide.request.target.Target
+import androidx.work.BackoffPolicy
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequest
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
 /**
- * Created on 12.12.2020.
- * Copyright by oleg
+ * Wallpaper helpers and **scheduled refresh** via [WorkManager].
+ *
+ * Wallpapers are generated locally from colors in settings ([WallpaperGenerator]); no remote image API.
  */
 class GalleryWall {
 
     companion object {
-        private const val jobId = 1102
+
+        private const val TAG = "GalleryWall"
+
+        /** Unique name for [WorkManager.enqueueUniquePeriodicWork]. */
+        internal const val UNIQUE_WORK_NAME = "gallery_wall_refresh"
+
+        /**
+         * Sent when a manual refresh finishes without applying wallpaper so the UI can dismiss
+         * progress (see [com.baysoft.gallerywall.ui.HomeFragment]).
+         */
+        const val ACTION_REFRESH_IDLE = "com.baysoft.gallerywall.REFRESH_IDLE"
+
+        /**
+         * WorkManager enforces a minimum interval (~15 minutes). Call this when building periodic
+         * requests so invalid shorter intervals from future preference changes never enqueue.
+         */
+        internal fun clampPeriodicIntervalMinutes(minutes: Long): Long {
+            val minMinutes =
+                TimeUnit.MILLISECONDS.toMinutes(PeriodicWorkRequest.MIN_PERIODIC_INTERVAL_MILLIS)
+            return maxOf(minutes, minMinutes)
+        }
 
         fun cancelSchedule(context: Context) {
-            val jobScheduler =
-                    context.getSystemService(Context.JOB_SCHEDULER_SERVICE) as JobScheduler
-            jobScheduler.cancel(jobId)
+            WorkManager.getInstance(context).cancelUniqueWork(UNIQUE_WORK_NAME)
         }
 
         fun schedule(context: Context, minutes: Long? = null) {
             val period = minutes
-                    ?: Settings(PreferenceManager.getDefaultSharedPreferences(context)).period
-            val jobScheduler =
-                    context.getSystemService(Context.JOB_SCHEDULER_SERVICE) as JobScheduler
+                ?: Settings(PreferenceManager.getDefaultSharedPreferences(context)).period
+            val wm = WorkManager.getInstance(context.applicationContext)
 
             if (period > 0) {
-                val component = ComponentName(context, GalleryWallService::class.java)
-                val myJob = JobInfo.Builder(jobId, component)
-                        .setBackoffCriteria(
-                                TimeUnit.SECONDS.toMillis(10),
-                                JobInfo.BACKOFF_POLICY_LINEAR
-                        )
-                        .setPeriodic(TimeUnit.MINUTES.toMillis(period))
-                        .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-                        .setRequiresDeviceIdle(false)
-                        .setRequiresCharging(false)
-                        .build()
+                val intervalMinutes = clampPeriodicIntervalMinutes(period)
+                val constraints = Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
+                    .build()
 
-                jobScheduler.cancel(jobId)
-                jobScheduler.schedule(myJob)
+                val request = PeriodicWorkRequestBuilder<GalleryWallRefreshWorker>(
+                    intervalMinutes,
+                    TimeUnit.MINUTES
+                )
+                    .setConstraints(constraints)
+                    .setBackoffCriteria(BackoffPolicy.LINEAR, 10, TimeUnit.SECONDS)
+                    .build()
+
+                wm.enqueueUniquePeriodicWork(
+                    UNIQUE_WORK_NAME,
+                    ExistingPeriodicWorkPolicy.UPDATE,
+                    request
+                )
             } else {
-                jobScheduler.cancel(jobId)
+                wm.cancelUniqueWork(UNIQUE_WORK_NAME)
             }
         }
 
-        suspend fun fetchImageURL(context: Context): String {
-            val settings = Settings(PreferenceManager.getDefaultSharedPreferences(context))
-            val result = ImageProvider.serviceApi.loadPixabay(BuildConfig.PIXABAY_API, settings.query)
-            result?.hits?.run {
-                val index = indices.random()
-                return get(index).imageURL
+        /** Renders the current wallpaper from [Settings] colors (solid or gradient). */
+        fun createWallpaperBitmap(context: Context): Bitmap? {
+            return try {
+                WallpaperGenerator.createBitmap(context)
+            } catch (e: Exception) {
+                Log.w(TAG, "createWallpaperBitmap failed", e)
+                null
             }
-
-            return ""
         }
 
         fun updateWallpaper(context: Context, image: Bitmap?) {
@@ -94,7 +115,5 @@ class GalleryWall {
                 }
             }
         }
-
     }
-
 }

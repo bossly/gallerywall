@@ -8,14 +8,11 @@
     <string name="notification_title_set">New wallpaper</string>
 
     <!-- Preferences -->
-    <string name="pref_query_title">Search for</string>
-    <string name="pref_query_default">cat</string>
+    <string name="pref_generated_colors_title">Wallpaper colors</string>
+    <string name="pref_generated_colors_summary">Comma-separated hex colors (#RGB or #RRGGBB). One color = solid fill; two or more = vertical gradient.</string>
+    <string name="pref_generated_colors_default" translatable="false">#6750A4,#625B71,#7D5260</string>
 
     <string name="pref_period_title">Update period</string>
-
-    <string name="title_wifi_only">Wifi Only</string>
-    <string name="summary_wifi_on">Update only if wifi enabled</string>
-    <string name="summary_wifi_off">Update with any connection</string>
 
     <string name="pref_notification_title">Show notification</string>
     <string name="pref_notification_off">Deliver new wallpaper silently</string>

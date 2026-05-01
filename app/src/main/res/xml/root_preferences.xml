@@ -1,12 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <PreferenceCategory>
 
         <EditTextPreference
-            app:defaultValue="@string/pref_query_default"
-            app:key="pref_query"
-            app:title="@string/pref_query_title"
-            app:icon="@drawable/ic_search"
+            app:key="pref_generated_colors"
+            app:title="@string/pref_generated_colors_title"
+            app:summary="@string/pref_generated_colors_summary"
+            app:icon="@drawable/ic_play_gray_32"
+            app:defaultValue="@string/pref_generated_colors_default"
             app:useSimpleSummaryProvider="true" />
 
         <ListPreference
@@ -25,13 +27,6 @@
             app:summaryOff="@string/pref_notification_off"
             app:summaryOn="@string/pref_notification_on"
             app:title="@string/pref_notification_title" />
-
-        <SwitchPreferenceCompat
-            app:icon="@drawable/ic_wifi"
-            app:key="pref_wifi"
-            app:summaryOff="@string/summary_wifi_off"
-            app:summaryOn="@string/summary_wifi_on"
-            app:title="@string/title_wifi_only" />
 
     </PreferenceCategory>
 

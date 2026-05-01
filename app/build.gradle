@@ -5,11 +5,6 @@ plugins {
     id 'kotlin-kapt'
 }
 
-Properties properties = new Properties()
-if (rootProject.file("local.properties").exists()) {
-    properties.load(rootProject.file("local.properties").newDataInputStream())
-}
-
 android {
     namespace 'com.baysoft.gallerywall'
 
@@ -21,9 +16,6 @@ android {
         versionName "2.3.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-
-        def pixabay_key = System.getenv("PIXABAY_API") ?: properties.getProperty('api_pixabay')
-        buildConfigField("String", "PIXABAY_API", "\"$pixabay_key\"")
     }
     buildTypes {
         release {
@@ -41,14 +33,17 @@ android {
     kotlinOptions {
         jvmTarget = '17'
     }
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+        }
+    }
     buildFeatures {
         viewBinding true
         dataBinding true
         buildConfig true
     }
 }
-
-def retrofitVersion = '2.9.0'
 
 dependencies {
     implementation 'androidx.preference:preference-ktx:1.2.0'
@@ -58,13 +53,12 @@ dependencies {
     implementation 'com.google.android.material:material:1.12.0'
 
     // 3rd party
-    implementation "com.squareup.retrofit2:retrofit:$retrofitVersion"
-    implementation "com.squareup.retrofit2:converter-gson:$retrofitVersion"
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1'
     implementation 'com.github.bumptech.glide:glide:4.11.0'
     implementation 'androidx.room:room-common-jvm:2.7.2'
     implementation 'androidx.room:room-ktx:2.7.2'
     implementation 'androidx.room:room-runtime:2.7.2'
+    implementation 'androidx.work:work-runtime-ktx:2.10.1'
     implementation 'androidx.navigation:navigation-fragment-ktx:2.9.3'
     implementation 'androidx.navigation:navigation-ui-ktx:2.9.3'
     kapt 'androidx.room:room-compiler:2.7.2'
@@ -72,6 +66,9 @@ dependencies {
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
 
     testImplementation 'junit:junit:4.13.2'
+    testImplementation 'androidx.test:core:1.6.1'
+    testImplementation 'androidx.work:work-testing:2.10.1'
+    testImplementation 'org.robolectric:robolectric:4.14.1'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
     androidTestImplementation 'tools.fastlane:screengrab:2.1.1'

@@ -33,7 +33,6 @@ jobs:
           APP_BUILD_NUMBER: ${{ env.GITHUB_RUN_ID }}
           APP_VERSION_CODE: ${{ github.run_number }}
           APP_VERSION_NAME: ${{ github.ref_name }}
-          PIXABAY_API: ${{ secrets.PIXABAY_API }}
         with:
           lane: unit_test
           skip-tracking: false

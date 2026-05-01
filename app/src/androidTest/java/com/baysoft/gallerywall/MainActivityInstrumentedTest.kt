@@ -55,7 +55,7 @@ class MainActivityInstrumentedTest {
     @Test
     fun searchDialog() {
         val recyclerView = onView(withId(androidx.preference.R.id.recycler_view))
-        recyclerView.check(matches(hasChildCount(5)))
+        recyclerView.check(matches(hasChildCount(4)))
 
         recyclerView.perform(
             RecyclerViewActions.actionOnItemAtPosition<RecyclerView.ViewHolder>(
@@ -64,7 +64,7 @@ class MainActivityInstrumentedTest {
         )
 
         val textView = onView(withId(com.google.android.material.R.id.alertTitle))
-        textView.check(matches(withText(R.string.pref_query_title)))
+        textView.check(matches(withText(R.string.pref_generated_colors_title)))
 
         Screengrab.screenshot("screen2")
     }

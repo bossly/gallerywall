@@ -10,20 +10,13 @@
 | ![Primary screen](screens/screen1.png) | ![Secondary screen](screens/screen2.png) | ![Widget screen](screens/screen3.png) |
 |-|-|-|
 
-Android application to refresh your wallpaper with in duration that can be set in settings. Each wallpaper picture comes from the free source following the any topic that been typed as search query.
+Android application to refresh your wallpaper on an interval you choose in settings. Wallpapers are generated on device from hex colors you enter: one color gives a solid fill, multiple colors produce a vertical gradient.
 
-It's optimized for the low battery usage using latest system's API.
+It's optimized for low battery usage using the system WorkManager APIs.
 
-# Setup 
+# Setup
 
-Currently there only Pixabay service used to fetch wallpaper images.
-
-Edit `local.properties` with your api key from https://pixabay.com/service/about/api/
-
-
-```groovy
-api_pixabay=<your api key>
-```
+No API keys or `local.properties` entries are required. Open the app and set **Wallpaper colors** in settings (comma-separated `#RRGGBB` values).
 
 # References
 

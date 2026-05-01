@@ -84,7 +84,7 @@ class HomeFragment : Fragment() {
             refreshButton?.visibility = View.GONE
             refreshProgress?.visibility = View.VISIBLE
             // Force refresh: trigger GalleryWallReceiver (same as widget)
-            val intent = com.baysoft.gallerywall.GalleryWallReceiver.updateIntent(requireContext(), null)
+            val intent = com.baysoft.gallerywall.GalleryWallReceiver.updateIntent(requireContext())
             requireContext().sendBroadcast(intent)
         }
         loadRecents()
@@ -98,7 +98,13 @@ class HomeFragment : Fragment() {
                 refreshProgress?.visibility = View.GONE
             }
         }
-        requireContext().registerReceiver(wallpaperSetReceiver, IntentFilter("com.baysoft.gallerywall.WALLPAPER_SET"))
+        requireContext().registerReceiver(
+            wallpaperSetReceiver,
+            IntentFilter().apply {
+                addAction("com.baysoft.gallerywall.WALLPAPER_SET")
+                addAction(com.baysoft.gallerywall.GalleryWall.ACTION_REFRESH_IDLE)
+            }
+        )
     }
 
     private fun loadRecents() {

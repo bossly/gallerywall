@@ -32,7 +32,6 @@ jobs:
       - name: Publish to Google Play
         uses: maierj/fastlane-action@v3.1.0
         env:
-          PIXABAY_API: ${{ secrets.PIXABAY_API }}
           APP_SIGN_KEYSTORE_PATH: /tmp/release.keystore
           APP_SIGN_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           APP_SIGN_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}

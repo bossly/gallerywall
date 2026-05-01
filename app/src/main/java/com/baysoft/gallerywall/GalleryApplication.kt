@@ -6,7 +6,7 @@ class GalleryApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        GalleryWallService.createNotificationChannel(this)
+        GalleryWallNotifications.createNotificationChannel(this)
     }
 
 }
