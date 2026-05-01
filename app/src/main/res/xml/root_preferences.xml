@@ -1,29 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <PreferenceCategory>
+    <SwitchPreferenceCompat
+        app:defaultValue="false"
+        app:key="pref_auto_wallpaper_enabled"
+        app:title="@string/pref_auto_wallpaper_enabled_title" />
 
-        <EditTextPreference
-            app:key="pref_generated_colors"
-            app:title="@string/pref_generated_colors_title"
-            app:summary="@string/pref_generated_colors_summary"
+    <Preference
+        app:enabled="false"
+        app:icon="@android:drawable/ic_dialog_info"
+        app:key="pref_auto_wallpaper_info"
+        app:selectable="false"
+        app:shouldDisableView="false"
+        app:summary="@string/pref_auto_wallpaper_info" />
+
+    <PreferenceCategory app:title="@string/pref_category_conditions">
+
+        <CheckBoxPreference
+            app:defaultValue="true"
+            app:icon="@drawable/ic_wifi"
+            app:key="pref_constraint_wifi"
+            app:summary="@string/pref_constraint_wifi_summary"
+            app:title="@string/pref_constraint_wifi_title" />
+
+        <CheckBoxPreference
+            app:defaultValue="false"
+            app:key="pref_constraint_charging"
+            app:summary="@string/pref_constraint_charging_summary"
+            app:title="@string/pref_constraint_charging_title" />
+
+        <CheckBoxPreference
+            app:defaultValue="false"
+            app:key="pref_constraint_idle"
+            app:summary="@string/pref_constraint_idle_summary"
+            app:title="@string/pref_constraint_idle_title" />
+
+    </PreferenceCategory>
+
+    <ListPreference
+        app:defaultValue="360"
+        app:entries="@array/period_entries"
+        app:entryValues="@array/period_values"
+        app:icon="@drawable/ic_period"
+        app:key="pref_period"
+        app:title="@string/pref_interval_title"
+        app:useSimpleSummaryProvider="false" />
+
+    <PreferenceCategory app:title="@string/pref_category_source">
+
+        <Preference
             app:icon="@drawable/ic_play_gray_32"
-            app:defaultValue="@string/pref_generated_colors_default"
-            app:useSimpleSummaryProvider="true" />
+            app:key="pref_wallpaper_source_nav"
+            app:title="@string/pref_wallpaper_source_title" />
 
-        <ListPreference
-            app:defaultValue="0"
-            app:entries="@array/period_entries"
-            app:entryValues="@array/period_values"
-            app:icon="@drawable/ic_period"
-            app:key="pref_period"
-            app:title="@string/pref_period_title"
-            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/pref_category_options">
 
         <SwitchPreferenceCompat
+            app:defaultValue="true"
             app:icon="@drawable/ic_notification"
             app:key="pref_notification"
-            app:defaultValue="true"
             app:summaryOff="@string/pref_notification_off"
             app:summaryOn="@string/pref_notification_on"
             app:title="@string/pref_notification_title" />

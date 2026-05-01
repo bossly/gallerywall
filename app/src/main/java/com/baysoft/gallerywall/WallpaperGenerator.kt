@@ -6,19 +6,15 @@ import android.graphics.Canvas
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Shader
-import androidx.preference.PreferenceManager
 
 /**
- * Builds wallpaper bitmaps from one or more colors (solid fill or vertical linear gradient).
+ * Shared rendering helpers for [com.baysoft.gallerywall.provider.WallpaperProvider] implementations.
  */
 object WallpaperGenerator {
 
-    fun createBitmap(context: Context): Bitmap {
-        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-        val colors = parseColors(Settings(prefs).generatedColorsHex)
-        val (w, h) = resolveSize(context)
-        return render(w, h, colors)
-    }
+    /** Hex string `#RRGGBB` for prefs/UI (opaque). */
+    fun colorToHexString(rgb: Int): String =
+        String.format("#%06X", 0xFFFFFF and rgb)
 
     internal fun parseColors(hexLine: String): List<Int> {
         val parsed = hexLine.split(',').mapNotNull { segment ->
@@ -41,22 +37,29 @@ object WallpaperGenerator {
         )
     }
 
-    private fun resolveSize(context: Context): Pair<Int, Int> {
+    internal fun resolveSize(context: Context): Pair<Int, Int> {
         val dm = context.resources.displayMetrics
         val w = dm.widthPixels.coerceAtLeast(480)
         val h = dm.heightPixels.coerceAtLeast(800)
         return w to h
     }
 
-    private fun render(w: Int, h: Int, colors: List<Int>): Bitmap {
+    internal fun renderSolid(w: Int, h: Int, color: Int): Bitmap {
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        Canvas(bmp).drawColor(color)
+        return bmp
+    }
+
+    internal fun renderGradient(w: Int, h: Int, colors: List<Int>): Bitmap {
         val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
-        if (colors.size == 1) {
-            canvas.drawColor(colors[0])
-            return bmp
+        val stops = when {
+            colors.isEmpty() -> defaultColors()
+            colors.size == 1 -> listOf(colors[0], colors[0])
+            else -> colors
         }
-        val arr = colors.toIntArray()
-        val positions = gradientPositions(colors.size)
+        val arr = stops.toIntArray()
+        val positions = gradientPositions(stops.size)
         val shader = LinearGradient(
             0f,
             0f,
@@ -72,7 +75,7 @@ object WallpaperGenerator {
     }
 
     private fun gradientPositions(n: Int): FloatArray {
-        if (n < 2) return floatArrayOf(0f)
+        if (n < 2) return floatArrayOf(0f, 1f)
         return FloatArray(n) { i -> i.toFloat() / (n - 1) }
     }
 }

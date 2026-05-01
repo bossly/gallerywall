@@ -2,12 +2,12 @@ package com.baysoft.gallerywall
 
 import android.os.Bundle
 import android.util.Log
-import androidx.recyclerview.widget.RecyclerView
 import androidx.test.espresso.Espresso.onView
-import androidx.test.espresso.action.ViewActions.*
-import androidx.test.espresso.assertion.ViewAssertions.*
-import androidx.test.espresso.contrib.RecyclerViewActions
-import androidx.test.espresso.matcher.ViewMatchers.*
+import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.assertion.ViewAssertions.matches
+import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
+import androidx.test.espresso.matcher.ViewMatchers.withId
+import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
@@ -53,18 +53,10 @@ class MainActivityInstrumentedTest {
     }
 
     @Test
-    fun searchDialog() {
-        val recyclerView = onView(withId(androidx.preference.R.id.recycler_view))
-        recyclerView.check(matches(hasChildCount(4)))
+    fun settingsScreen_showsPeriodPreference() {
+        onView(withId(R.id.settingsFragment)).perform(click())
 
-        recyclerView.perform(
-            RecyclerViewActions.actionOnItemAtPosition<RecyclerView.ViewHolder>(
-                1, click()
-            )
-        )
-
-        val textView = onView(withId(com.google.android.material.R.id.alertTitle))
-        textView.check(matches(withText(R.string.pref_generated_colors_title)))
+        onView(withText(R.string.pref_interval_title)).check(matches(isDisplayed()))
 
         Screengrab.screenshot("screen2")
     }

@@ -7,20 +7,64 @@
     <string name="notification_action_next">Next</string>
     <string name="notification_title_set">New wallpaper</string>
 
-    <!-- Preferences -->
-    <string name="pref_generated_colors_title">Wallpaper colors</string>
-    <string name="pref_generated_colors_summary">Comma-separated hex colors (#RGB or #RRGGBB). One color = solid fill; two or more = vertical gradient.</string>
-    <string name="pref_generated_colors_default" translatable="false">#6750A4,#625B71,#7D5260</string>
+    <!-- Preferences / Auto Wallpaper -->
+    <string name="title_auto_wallpaper">Auto Wallpaper</string>
 
-    <string name="pref_period_title">Update period</string>
+    <string name="pref_auto_wallpaper_enabled_title">On</string>
+    <string name="pref_auto_wallpaper_info">Auto Wallpaper will refresh your device with a new wallpaper based on the interval and conditions below.</string>
+
+    <string name="pref_category_conditions">Conditions</string>
+    <string name="pref_constraint_wifi_title">On Wi‑Fi</string>
+    <string name="pref_constraint_wifi_summary">Device must be connected to an unmetered network</string>
+    <string name="pref_constraint_charging_title">Charging</string>
+    <string name="pref_constraint_charging_summary">Device must be connected to a power source</string>
+    <string name="pref_constraint_idle_title">Idle</string>
+    <string name="pref_constraint_idle_summary">Device must be inactive</string>
+
+    <string name="pref_interval_title">Interval</string>
+    <string name="pref_period_summary_format">Change wallpaper every: %1$s</string>
+
+    <string name="pref_category_source">Source</string>
+    <string name="pref_wallpaper_source_title">Wallpaper source</string>
+    <string name="pref_wallpaper_source_summary_format">Current source: %1$s</string>
+
+    <string name="pref_category_options">Options</string>
 
     <string name="pref_notification_title">Show notification</string>
     <string name="pref_notification_off">Deliver new wallpaper silently</string>
     <string name="pref_notification_on">When new wallpaper set</string>
 
+    <string name="tab_wallpapers">Wallpapers</string>
+    <string name="tab_providers">Providers</string>
+    <string name="tab_settings">Settings</string>
+
+    <string name="provider_color_title">Solid color</string>
+    <string name="provider_color_summary">Fill the screen with the first color from wallpaper colors.</string>
+    <string name="provider_gradient_title">Gradient</string>
+    <string name="provider_gradient_summary">Vertical gradient through every color in wallpaper colors.</string>
+    <string name="provider_selected">Wallpaper source updated</string>
+    <string name="provider_configure">Configure</string>
+    <string name="provider_preview_description">Wallpaper preview</string>
+    <string name="provider_preview_thumbnail">Provider preview</string>
+    <string name="title_color_provider_config">Solid color</string>
+    <string name="title_gradient_provider_config">Gradient</string>
+    <string name="gradient_add_color">Add color</string>
+    <string name="gradient_edit_color_title">Choose color</string>
+    <string name="gradient_color_label">Color %1$d</string>
+    <string name="gradient_edit_color">Edit color</string>
+    <string name="gradient_remove_color">Remove color</string>
+    <string name="color_hex_hint">Hex (#RRGGBB)</string>
+    <string name="color_rgb_sliders">RGB</string>
+
     <!-- Home/Wallpapers -->
     <string name="wallpaper">Wallpaper</string>
+    <string name="wallpaper_current_set">Currently set as wallpaper</string>
     <string name="no_recent_wallpapers">No recent wallpapers found</string>
     <string name="refresh">Refresh</string>
     <string name="set_wallpaper">Set</string>
+    <string name="delete_wallpaper">Delete</string>
+
+    <string name="menu_help">Help</string>
+    <string name="settings_help_title">Auto Wallpaper</string>
+    <string name="settings_help_message">Turn on Auto Wallpaper to refresh on a schedule. Interval chooses how often. Conditions delay refresh until your device meets them (for example Wi‑Fi only). Choose Solid color or Gradient under Wallpaper source (Providers tab).</string>
 </resources>

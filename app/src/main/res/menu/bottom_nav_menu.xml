@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/wallpapersFragment"
+        android:icon="@drawable/ic_tab_wallpapers"
+        android:title="@string/tab_wallpapers" />
+
+    <item
+        android:id="@+id/providersFragment"
+        android:icon="@drawable/ic_tab_providers"
+        android:title="@string/tab_providers" />
+
+    <item
+        android:id="@+id/settingsFragment"
+        android:icon="@drawable/ic_settings_gray_32"
+        android:title="@string/tab_settings" />
+
+</menu>

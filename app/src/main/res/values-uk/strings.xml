@@ -3,10 +3,61 @@
     <string name="title_settings">Налаштування</string>
     <string name="notification_action_next">Наступна</string>
     <string name="notification_title_set">Нові шпалери</string>
-    <string name="pref_generated_colors_title">Кольори шпалер</string>
-    <string name="pref_generated_colors_summary">Кольори через кому у форматі hex (#RGB або #RRGGBB). Один колір — суцільний залив; два й більше — вертикальний градієнт.</string>
-    <string name="pref_period_title">Період оновлення</string>
+    <string name="title_auto_wallpaper">Авто шпалери</string>
+
+    <string name="pref_auto_wallpaper_enabled_title">Увімкнено</string>
+    <string name="pref_auto_wallpaper_info">Авто шпалери оновлюють шпалери за інтервалом і умовами нижче.</string>
+
+    <string name="pref_category_conditions">Умови</string>
+    <string name="pref_constraint_wifi_title">Через Wi‑Fi</string>
+    <string name="pref_constraint_wifi_summary">Потрібне підключення до безлімітної мережі</string>
+    <string name="pref_constraint_charging_title">Зарядка</string>
+    <string name="pref_constraint_charging_summary">Підключіть пристрій до живлення</string>
+    <string name="pref_constraint_idle_title">Бездіяльність</string>
+    <string name="pref_constraint_idle_summary">Пристрій має бути неактивним</string>
+
+    <string name="pref_interval_title">Інтервал</string>
+    <string name="pref_period_summary_format">Змінювати шпалери кожні: %1$s</string>
+
+    <string name="pref_category_source">Джерело</string>
+    <string name="pref_wallpaper_source_title">Джерело шпалер</string>
+    <string name="pref_wallpaper_source_summary_format">Поточне джерело: %1$s</string>
+
+    <string name="pref_category_options">Опції</string>
+
     <string name="pref_notification_title">Показувати повідомлення</string>
     <string name="pref_notification_off">Оновлювати шпалери тихо</string>
     <string name="pref_notification_on">Коли нові шпалери встановлені</string>
+
+    <string name="tab_wallpapers">Шпалери</string>
+    <string name="tab_providers">Джерела</string>
+    <string name="tab_settings">Налаштування</string>
+
+    <string name="provider_color_title">Суцільний колір</string>
+    <string name="provider_color_summary">Заповнити екран першим кольором з кольорів шпалер.</string>
+    <string name="provider_gradient_title">Градієнт</string>
+    <string name="provider_gradient_summary">Вертикальний градієнт через усі кольори з кольорів шпалер.</string>
+    <string name="provider_selected">Джерело шпалер оновлено</string>
+
+    <string name="provider_configure">Налаштувати</string>
+    <string name="provider_preview_description">Попередній перегляд шпалер</string>
+    <string name="provider_preview_thumbnail">Попередній перегляд джерела</string>
+    <string name="title_color_provider_config">Суцільний колір</string>
+    <string name="title_gradient_provider_config">Градієнт</string>
+    <string name="gradient_add_color">Додати колір</string>
+    <string name="gradient_edit_color_title">Оберіть колір</string>
+    <string name="gradient_color_label">Колір %1$d</string>
+    <string name="gradient_edit_color">Змінити колір</string>
+    <string name="gradient_remove_color">Прибрати колір</string>
+
+    <string name="color_hex_hint">Hex (#RRGGBB)</string>
+    <string name="color_rgb_sliders">RGB</string>
+
+    <string name="delete_wallpaper">Видалити</string>
+
+    <string name="wallpaper_current_set">Зараз встановлено як шпалери</string>
+
+    <string name="menu_help">Допомога</string>
+    <string name="settings_help_title">Авто шпалери</string>
+    <string name="settings_help_message">Увімкніть Авто шпалери для оновлення за розкладом. Інтервал задає частоту. Умови відкладають оновлення, доки їх не виконано (наприклад лише через Wi‑Fi). Оберіть суцільний колір або градієнт у джерелі шпалер (вкладка Джерела).</string>
 </resources>

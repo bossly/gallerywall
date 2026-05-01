@@ -10,13 +10,20 @@
 | ![Primary screen](screens/screen1.png) | ![Secondary screen](screens/screen2.png) | ![Widget screen](screens/screen3.png) |
 |-|-|-|
 
-Android application to refresh your wallpaper on an interval you choose in settings. Wallpapers are generated on device from hex colors you enter: one color gives a solid fill, multiple colors produce a vertical gradient.
+Android application to refresh your wallpaper on an interval you choose in settings.
+
+ Wallpapers are generated on device based on activated plugins on the **Providers** tab.
+ 
+ Default plugins:
+ - **Solid color**
+ - **Gradient** 
+
+Plugins to be downloaded as Dynamic Feature Module:
+- Image tile generator
+- Wallpaper with smiles
+- 
 
 It's optimized for low battery usage using the system WorkManager APIs.
-
-# Setup
-
-No API keys or `local.properties` entries are required. Open the app and set **Wallpaper colors** in settings (comma-separated `#RRGGBB` values).
 
 # References
 

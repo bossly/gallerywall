@@ -27,7 +27,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@drawable/button"
-            android:contentDescription="@string/pref_period_title"
+            android:contentDescription="@string/refresh"
             android:src="@drawable/ic_refresh_gray_32" />
 
         <ProgressBar

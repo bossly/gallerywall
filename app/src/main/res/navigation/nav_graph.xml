@@ -2,20 +2,44 @@
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    app:startDestination="@id/homeFragment">
+    app:startDestination="@id/wallpapersFragment">
 
     <fragment
-        android:id="@+id/homeFragment"
+        android:id="@+id/wallpapersFragment"
         android:name="com.baysoft.gallerywall.ui.HomeFragment"
-        android:label="@string/app_name">
+        android:label="@string/tab_wallpapers"
+        tools:layout="@layout/fragment_home" />
+
+    <fragment
+        android:id="@+id/providersFragment"
+        android:name="com.baysoft.gallerywall.ui.ProvidersFragment"
+        android:label="@string/tab_providers"
+        tools:layout="@layout/fragment_providers">
+
         <action
-            android:id="@+id/action_homeFragment_to_settingsFragment"
-            app:destination="@id/settingsFragment" />
+            android:id="@+id/action_providersFragment_to_colorProviderConfigFragment"
+            app:destination="@id/colorProviderConfigFragment" />
+
+        <action
+            android:id="@+id/action_providersFragment_to_gradientProviderConfigFragment"
+            app:destination="@id/gradientProviderConfigFragment" />
     </fragment>
+
+    <fragment
+        android:id="@+id/colorProviderConfigFragment"
+        android:name="com.baysoft.gallerywall.ui.ColorProviderConfigFragment"
+        android:label="@string/title_color_provider_config"
+        tools:layout="@layout/fragment_color_provider_config" />
+
+    <fragment
+        android:id="@+id/gradientProviderConfigFragment"
+        android:name="com.baysoft.gallerywall.ui.GradientProviderConfigFragment"
+        android:label="@string/title_gradient_provider_config"
+        tools:layout="@layout/fragment_gradient_provider_config" />
 
     <fragment
         android:id="@+id/settingsFragment"
         android:name="com.baysoft.gallerywall.SettingsFragment"
-        android:label="@string/title_settings" />
+        android:label="@string/title_auto_wallpaper" />
 
 </navigation>

@@ -35,6 +35,15 @@
             android:paddingEnd="8dp"
             android:paddingBottom="8dp">
 
+            <CheckBox
+                android:id="@+id/checkCurrentWallpaper"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:clickable="false"
+                android:focusable="false"
+                android:contentDescription="@string/wallpaper_current_set"
+                android:importantForAccessibility="yes" />
+
             <TextView
                 android:id="@+id/dateText"
                 android:layout_width="0dp"
@@ -44,6 +53,15 @@
                 android:textColor="@android:color/darker_gray"
                 android:gravity="start|center_vertical"
                 android:text="" />
+
+            <ImageButton
+                android:id="@+id/btnDeleteWallpaper"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_margin="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/delete_wallpaper"
+                android:src="@android:drawable/ic_menu_delete" />
 
             <Button
                 android:id="@+id/btnSetWallpaper"

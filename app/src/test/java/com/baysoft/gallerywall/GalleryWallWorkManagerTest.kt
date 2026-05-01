@@ -1,6 +1,7 @@
 package com.baysoft.gallerywall
 
 import android.content.Context
+import androidx.preference.PreferenceManager
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
@@ -25,6 +26,9 @@ class GalleryWallWorkManagerTest {
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
         WorkManagerTestInitHelper.initializeTestWorkManager(context)
+        PreferenceManager.getDefaultSharedPreferences(context).edit()
+            .putBoolean(Settings.PREF_AUTO_WALLPAPER_ENABLED, true)
+            .commit()
     }
 
     @After

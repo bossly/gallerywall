@@ -2,6 +2,7 @@ package com.baysoft.gallerywall.data
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 
 
 class WallpaperRepository(private val dao: WallpaperDao) {
@@ -18,5 +19,12 @@ class WallpaperRepository(private val dao: WallpaperDao) {
     suspend fun cleanupOldWallpapers() {
         val threeMonthsAgo = System.currentTimeMillis() - 90L * 24 * 60 * 60 * 1000
         dao.deleteOlderThan(threeMonthsAgo)
+    }
+
+    suspend fun deleteWallpaper(wallpaper: WallpaperEntity) {
+        withContext(Dispatchers.IO) {
+            dao.deleteById(wallpaper.id)
+            File(wallpaper.filePath).delete()
+        }
     }
 }

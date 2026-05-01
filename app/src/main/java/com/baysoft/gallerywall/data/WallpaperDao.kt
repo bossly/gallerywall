@@ -15,4 +15,7 @@ interface WallpaperDao {
 
     @Query("DELETE FROM wallpapers WHERE dateAdded < :olderThan")
     suspend fun deleteOlderThan(olderThan: Long)
+
+    @Query("DELETE FROM wallpapers WHERE id = :id")
+    suspend fun deleteById(id: Long)
 }

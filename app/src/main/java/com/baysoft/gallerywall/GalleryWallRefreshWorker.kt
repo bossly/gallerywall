@@ -12,7 +12,7 @@ import kotlinx.coroutines.withContext
 /**
  * Runs scheduled wallpaper refresh under [WorkManager].
  *
- * Generates wallpaper locally from configured colors ([WallpaperGenerator]); no network.
+ * Generates wallpaper locally via [GalleryWall.createWallpaperBitmap]; no network.
  */
 class GalleryWallRefreshWorker(
     context: Context,

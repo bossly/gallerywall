@@ -6,6 +6,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
+import androidx.navigation.ui.setupWithNavController
+import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity() {
 
@@ -17,8 +19,16 @@ class MainActivity : AppCompatActivity() {
 
         val navHostFragment = supportFragmentManager.findFragmentById(R.id.fragment) as NavHostFragment
         val navController = navHostFragment.navController
-        appBarConfiguration = AppBarConfiguration(setOf(R.id.homeFragment))
+        appBarConfiguration = AppBarConfiguration(
+            setOf(
+                R.id.wallpapersFragment,
+                R.id.providersFragment,
+                R.id.settingsFragment,
+            )
+        )
         setupActionBarWithNavController(navController, appBarConfiguration)
+
+        findViewById<BottomNavigationView>(R.id.bottom_navigation).setupWithNavController(navController)
     }
 
     override fun onSupportNavigateUp(): Boolean {
