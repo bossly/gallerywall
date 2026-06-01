@@ -3,8 +3,7 @@ package com.baysoft.gallerywall
 import android.content.Context
 import androidx.preference.PreferenceManager
 import androidx.test.core.app.ApplicationProvider
-import com.baysoft.gallerywall.provider.ColorProvider
-import com.baysoft.gallerywall.provider.GradientProvider
+import com.baysoft.gallerywall.provider.ProceduralProvider
 import org.junit.After
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -32,23 +31,12 @@ class WallpaperProviderGenerateTest {
     }
 
     @Test
-    fun colorProvider_generatesSizedBitmap() {
-        PreferenceManager.getDefaultSharedPreferences(context).edit()
-            .putString(Settings.PREF_COLOR_PROVIDER_SOLID, "#123456")
-            .putString(Settings.PREF_GENERATED_COLORS, "#123456,#ABCDEF")
-            .commit()
-        val bmp = ColorProvider.generateBitmap(context)
-        assertNotNull(bmp)
-        assertTrue(bmp.width > 0)
-        assertTrue(bmp.height > 0)
-    }
-
-    @Test
-    fun gradientProvider_generatesSizedBitmap() {
+    fun proceduralProvider_generatesSizedBitmap() {
         PreferenceManager.getDefaultSharedPreferences(context).edit()
             .putString(Settings.PREF_GENERATED_COLORS, "#FF0000,#0000FF")
+            .putInt(Settings.PREF_SCALE_FACTOR, 4)
             .commit()
-        val bmp = GradientProvider.generateBitmap(context)
+        val bmp = ProceduralProvider.generateBitmap(context)
         assertNotNull(bmp)
         assertTrue(bmp.width > 0)
         assertTrue(bmp.height > 0)

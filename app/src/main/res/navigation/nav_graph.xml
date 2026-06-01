@@ -14,28 +14,7 @@
         android:id="@+id/providersFragment"
         android:name="com.baysoft.gallerywall.ui.ProvidersFragment"
         android:label="@string/tab_providers"
-        tools:layout="@layout/fragment_providers">
-
-        <action
-            android:id="@+id/action_providersFragment_to_colorProviderConfigFragment"
-            app:destination="@id/colorProviderConfigFragment" />
-
-        <action
-            android:id="@+id/action_providersFragment_to_gradientProviderConfigFragment"
-            app:destination="@id/gradientProviderConfigFragment" />
-    </fragment>
-
-    <fragment
-        android:id="@+id/colorProviderConfigFragment"
-        android:name="com.baysoft.gallerywall.ui.ColorProviderConfigFragment"
-        android:label="@string/title_color_provider_config"
-        tools:layout="@layout/fragment_color_provider_config" />
-
-    <fragment
-        android:id="@+id/gradientProviderConfigFragment"
-        android:name="com.baysoft.gallerywall.ui.GradientProviderConfigFragment"
-        android:label="@string/title_gradient_provider_config"
-        tools:layout="@layout/fragment_gradient_provider_config" />
+        tools:layout="@layout/fragment_providers" />
 
     <fragment
         android:id="@+id/settingsFragment"

@@ -15,7 +15,7 @@ import java.io.File
  * Loads a PyTorch traced (.ptl) model to generate 64x64 pixel art sprite grids
  * locally in milliseconds, with zero JNI NDK compiler dependencies.
  */
-class StableDiffusionEngine private constructor() {
+class MLImageEngine private constructor() {
 
     private var module: Module? = null
     private var loadedModelPath: String? = null
@@ -211,14 +211,14 @@ class StableDiffusionEngine private constructor() {
     }
 
     companion object {
-        private const val TAG = "StableDiffusionEngine"
+        private const val TAG = "MLImageEngine"
 
         @Volatile
-        private var instance: StableDiffusionEngine? = null
+        private var instance: MLImageEngine? = null
 
-        fun getInstance(): StableDiffusionEngine {
+        fun getInstance(): MLImageEngine {
             return instance ?: synchronized(this) {
-                instance ?: StableDiffusionEngine().also { instance = it }
+                instance ?: MLImageEngine().also { instance = it }
             }
         }
     }

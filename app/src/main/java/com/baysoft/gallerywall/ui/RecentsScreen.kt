@@ -19,6 +19,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -205,15 +207,18 @@ fun RecentsScreen(modifier: Modifier = Modifier) {
                                             modifier = Modifier.fillMaxSize()
                                         )
 
-                                        // Sleek method label overlay badge
-                                        val methodLabel = remember(entity.filePath) {
-                                            when {
-                                                entity.filePath.contains("local_ai") -> "Local AI"
-                                                entity.filePath.contains("tile_noise") -> "Noise"
-                                                entity.filePath.contains("gradient") -> "Gradient"
-                                                entity.filePath.contains("color") -> "Solid Color"
-                                                else -> "Solid" // Default fallback for old legacy wallpapers
+                                        // Dynamic prompt label & engine icon selection
+                                        val (badgeLabel, badgeIcon) = remember(entity) {
+                                            val isMl = entity.providerId == "local_ai" || entity.filePath.contains("local_ai")
+                                            val isProcedural = entity.providerId == "procedural" || entity.filePath.contains("tile_noise") || entity.filePath.contains("procedural")
+                                            
+                                            val labelStr = if (entity.prompt.isNotEmpty()) {
+                                                entity.prompt
+                                            } else {
+                                                if (isMl) "Local AI" else if (isProcedural) "Procedural" else "Pattern"
                                             }
+                                            val iconVal = if (isMl) Icons.Default.Star else Icons.Default.Build
+                                            labelStr to iconVal
                                         }
                                         
                                         Surface(
@@ -223,13 +228,25 @@ fun RecentsScreen(modifier: Modifier = Modifier) {
                                                 .padding(8.dp)
                                                 .align(Alignment.BottomStart)
                                         ) {
-                                            Text(
-                                                text = methodLabel,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
                                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                            )
+                                            ) {
+                                                Icon(
+                                                    imageVector = badgeIcon,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(12.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(
+                                                    text = badgeLabel,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                    maxLines = 1
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -259,7 +276,16 @@ fun RecentsScreen(modifier: Modifier = Modifier) {
                             }
                             val filePath = file.absolutePath
                             GalleryWall.rememberAppliedWallpaperPath(context, filePath)
-                            repository.addWallpaper(filePath)
+                            
+                            val promptStr = if (providerId == "local_ai" || providerId == "procedural") {
+                                try {
+                                    com.baysoft.gallerywall.ml.DynamicPromptParser.parse(context, settings.automationPrompt)
+                                } catch (e: Exception) {
+                                    settings.automationPrompt
+                                }
+                            } else ""
+                            
+                            repository.addWallpaper(filePath, providerId, promptStr)
                             true
                         }
                         if (generated) {

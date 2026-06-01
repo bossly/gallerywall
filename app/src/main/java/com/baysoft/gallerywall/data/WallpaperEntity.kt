@@ -7,5 +7,7 @@ import androidx.room.PrimaryKey
 data class WallpaperEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val filePath: String,
-    val dateAdded: Long // Store as epoch millis
+    val dateAdded: Long, // Store as epoch millis
+    val providerId: String = "",
+    val prompt: String = ""
 )

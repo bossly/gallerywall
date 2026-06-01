@@ -8,14 +8,14 @@ import com.baysoft.gallerywall.Settings
 import com.baysoft.gallerywall.WallpaperGenerator
 
 /**
- * Procedural Noise wallpaper provider. Generates a seamless mathematical noise tile
+ * Procedural wallpaper provider. Generates seamless mathematical and geometric tiles
  * and repeats it perfectly across the device screen.
  */
-object TileNoiseProvider : WallpaperProvider {
-    override val id: String = "tile_noise"
+object ProceduralProvider : WallpaperProvider {
+    override val id: String = "procedural"
 
-    override val titleRes: Int = R.string.provider_noise_title
-    override val summaryRes: Int = R.string.provider_noise_summary
+    override val titleRes: Int = R.string.provider_procedural_title
+    override val summaryRes: Int = R.string.provider_procedural_summary
 
     override fun generateBitmap(context: Context): Bitmap {
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
@@ -33,7 +33,7 @@ object TileNoiseProvider : WallpaperProvider {
         val seed = (0..Int.MAX_VALUE).random()
         
         // Generate seamless dynamic simulated ML tile
-        val tile = NoiseGenerator.generateSeamlessTile(size, colors, prompt, seed)
+        val tile = ProceduralGenerator.generateSeamlessTile(size, colors, prompt, seed)
         
         // Tile across full screen dimensions
         return WallpaperGenerator.renderTiledWallpaper(context, tile)

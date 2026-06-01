@@ -12,9 +12,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.baysoft.gallerywall.R
 import com.baysoft.gallerywall.Settings
-import com.baysoft.gallerywall.WallpaperGenerator
-import com.baysoft.gallerywall.provider.ColorProvider
-import com.baysoft.gallerywall.provider.GradientProvider
 import com.baysoft.gallerywall.provider.WallpaperProvider
 import com.baysoft.gallerywall.provider.WallpaperProviderRegistry
 import com.google.android.material.button.MaterialButton
@@ -45,12 +42,6 @@ class ProvidersFragment : Fragment() {
                 Snackbar.make(view, R.string.provider_selected, Snackbar.LENGTH_SHORT).show()
             },
             onConfigure = { provider ->
-                when (provider.id) {
-                    ColorProvider.id ->
-                        findNavController().navigate(R.id.action_providersFragment_to_colorProviderConfigFragment)
-                    GradientProvider.id ->
-                        findNavController().navigate(R.id.action_providersFragment_to_gradientProviderConfigFragment)
-                }
             },
         )
         recyclerView.adapter = listAdapter
@@ -88,27 +79,6 @@ class ProvidersFragment : Fragment() {
             holder.title.text = ctx.getString(provider.titleRes)
             holder.summary.text = ctx.getString(provider.summaryRes)
             holder.radio.isChecked = provider.id == selectedId
-
-            when (provider.id) {
-                ColorProvider.id -> {
-                    val hex = Settings(prefs).colorProviderSolidHex
-                    holder.preview.background = null
-                    holder.preview.setImageDrawable(null)
-                    holder.preview.setBackgroundColor(Color.parseColor(hex))
-                }
-                GradientProvider.id -> {
-                    val arr = WallpaperGenerator.parseColors(Settings(prefs).generatedColorsHex).toIntArray()
-                    holder.preview.setBackgroundColor(0)
-                    holder.preview.setImageDrawable(null)
-                    holder.preview.background =
-                        GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, arr)
-                }
-                else -> {
-                    holder.preview.background = null
-                    holder.preview.setBackgroundColor(0)
-                }
-            }
-
             holder.card.setOnClickListener {
                 if (provider.id != selectedId) {
                     onSelect(provider)

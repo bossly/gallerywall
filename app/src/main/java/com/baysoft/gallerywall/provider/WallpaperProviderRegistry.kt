@@ -6,8 +6,7 @@ package com.baysoft.gallerywall.provider
 object WallpaperProviderRegistry {
 
     private val providers: List<WallpaperProvider> = listOf(
-        GradientProvider,
-        TileNoiseProvider,
+        ProceduralProvider,
         LocalAIProvider,
     )
 
@@ -17,5 +16,5 @@ object WallpaperProviderRegistry {
 
     fun get(id: String): WallpaperProvider? = byId[id]
 
-    val defaultProvider: WallpaperProvider get() = GradientProvider
+    val defaultProvider: WallpaperProvider get() = ProceduralProvider
 }

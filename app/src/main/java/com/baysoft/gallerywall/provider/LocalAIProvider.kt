@@ -8,7 +8,7 @@ import com.baysoft.gallerywall.R
 import com.baysoft.gallerywall.Settings
 import com.baysoft.gallerywall.WallpaperGenerator
 import com.baysoft.gallerywall.ml.DynamicPromptParser
-import com.baysoft.gallerywall.ml.StableDiffusionEngine
+import com.baysoft.gallerywall.ml.MLImageEngine
 
 /**
  * On-device local AI wallpaper generator. Uses stable-diffusion.cpp to synthesize a seamless
@@ -36,7 +36,7 @@ object LocalAIProvider : WallpaperProvider {
         Log.i(TAG, "Generating AI wallpaper. Raw: '$promptTemplate' -> Resolved: '$prompt'")
         
         // 2. Load PyTorch model (with automatic fallback to assets if custom model fails or ends with non-ptl format)
-        val engine = StableDiffusionEngine.getInstance()
+        val engine = MLImageEngine.getInstance()
         var modelLoaded = false
         
         if (!activeModelPath.isNullOrEmpty() && activeModelPath.endsWith(".ptl", ignoreCase = true)) {

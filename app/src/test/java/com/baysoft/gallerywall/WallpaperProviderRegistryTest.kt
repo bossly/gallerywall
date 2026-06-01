@@ -1,7 +1,7 @@
 package com.baysoft.gallerywall
 
-import com.baysoft.gallerywall.provider.ColorProvider
-import com.baysoft.gallerywall.provider.GradientProvider
+import com.baysoft.gallerywall.provider.ProceduralProvider
+import com.baysoft.gallerywall.provider.LocalAIProvider
 import com.baysoft.gallerywall.provider.WallpaperProviderRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -16,19 +16,19 @@ class WallpaperProviderRegistryTest {
     }
 
     @Test
-    fun get_colorAndGradient() {
-        assertSame(ColorProvider, WallpaperProviderRegistry.get(ColorProvider.id))
-        assertSame(GradientProvider, WallpaperProviderRegistry.get(GradientProvider.id))
+    fun get_proceduralAndAI() {
+        assertSame(ProceduralProvider, WallpaperProviderRegistry.get(ProceduralProvider.id))
+        assertSame(LocalAIProvider, WallpaperProviderRegistry.get(LocalAIProvider.id))
     }
 
     @Test
-    fun defaultProvider_isColor() {
-        assertSame(ColorProvider, WallpaperProviderRegistry.defaultProvider)
+    fun defaultProvider_isProcedural() {
+        assertSame(ProceduralProvider, WallpaperProviderRegistry.defaultProvider)
     }
 
     @Test
     fun all_containsRegisteredProviders() {
         val ids = WallpaperProviderRegistry.all().map { it.id }.toSet()
-        assertEquals(setOf(ColorProvider.id, GradientProvider.id), ids)
+        assertEquals(setOf(ProceduralProvider.id, LocalAIProvider.id), ids)
     }
 }

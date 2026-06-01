@@ -165,7 +165,16 @@ class GalleryWall {
                     rememberAppliedWallpaperPath(context.applicationContext, filePath)
                     val db = com.baysoft.gallerywall.data.WallpaperDatabase.getInstance(context)
                     val repo = com.baysoft.gallerywall.data.WallpaperRepository(db.wallpaperDao())
-                    repo.addWallpaper(filePath)
+                    
+                    val promptStr = if (providerId == "local_ai" || providerId == "procedural") {
+                        try {
+                            com.baysoft.gallerywall.ml.DynamicPromptParser.parse(context, settings.automationPrompt)
+                        } catch (e: Exception) {
+                            settings.automationPrompt
+                        }
+                    } else ""
+                    
+                    repo.addWallpaper(filePath, providerId, promptStr)
 
                     // Notify UI to update recents
                     context.sendBroadcast(Intent("com.baysoft.gallerywall.WALLPAPER_SET"))

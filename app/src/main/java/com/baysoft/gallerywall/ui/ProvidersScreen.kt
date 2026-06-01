@@ -402,7 +402,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                     val prompt = com.baysoft.gallerywall.ml.DynamicPromptParser.parse(context, promptTemplate)
                                     val tileSize = settingsSnap.scaleFactor * 64
                                     val seed = (0..Int.MAX_VALUE).random()
-                                    com.baysoft.gallerywall.provider.NoiseGenerator.generateSeamlessTile(tileSize, colors, prompt, seed)
+                                    com.baysoft.gallerywall.provider.ProceduralGenerator.generateSeamlessTile(tileSize, colors, prompt, seed)
                                 } else null
                             }
                             if (bmp != null) {

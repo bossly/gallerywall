@@ -6,9 +6,9 @@ import java.io.File
 
 
 class WallpaperRepository(private val dao: WallpaperDao) {
-    suspend fun addWallpaper(filePath: String) {
+    suspend fun addWallpaper(filePath: String, providerId: String, prompt: String) {
         val now = System.currentTimeMillis()
-        dao.insert(WallpaperEntity(filePath = filePath, dateAdded = now))
+        dao.insert(WallpaperEntity(filePath = filePath, dateAdded = now, providerId = providerId, prompt = prompt))
     }
 
     suspend fun getRecentWallpapers(): List<WallpaperEntity> {
