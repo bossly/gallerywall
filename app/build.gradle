@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.compose'
     id 'androidx.navigation.safeargs.kotlin'
     id 'kotlin-kapt'
 }
@@ -17,6 +18,9 @@ android {
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
+
+
+
     buildTypes {
         release {
             minifyEnabled true
@@ -38,14 +42,32 @@ android {
             includeAndroidResources = true
         }
     }
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+    }
     buildFeatures {
         viewBinding true
         dataBinding true
         buildConfig true
+        compose true
     }
 }
 
 dependencies {
+    // Jetpack Compose
+    implementation platform('androidx.compose:compose-bom:2024.12.01')
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-graphics'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.activity:activity-compose:1.9.3'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7'
+    implementation 'androidx.navigation:navigation-compose:2.8.5'
+    implementation 'androidx.compose.runtime:runtime-livedata'
+    implementation 'io.coil-kt:coil-compose:2.6.0'
+
     implementation 'androidx.preference:preference-ktx:1.2.0'
     implementation 'androidx.core:core-ktx:1.16.0'
     implementation 'androidx.appcompat:appcompat:1.7.0'
@@ -64,6 +86,10 @@ dependencies {
     kapt 'androidx.room:room-compiler:2.7.2'
     androidTestImplementation 'androidx.test.espresso:espresso-contrib:3.6.1'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
+
+    // PyTorch Mobile Lite
+    implementation 'org.pytorch:pytorch_android_lite:2.1.0'
+    implementation 'org.pytorch:pytorch_android_torchvision_lite:2.1.0'
 
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'androidx.test:core:1.6.1'

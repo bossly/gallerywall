@@ -33,8 +33,6 @@
     <string name="tab_providers">Джерела</string>
     <string name="tab_settings">Налаштування</string>
 
-    <string name="provider_color_title">Суцільний колір</string>
-    <string name="provider_color_summary">Заповнити екран першим кольором з кольорів шпалер.</string>
     <string name="provider_gradient_title">Градієнт</string>
     <string name="provider_gradient_summary">Вертикальний градієнт через усі кольори з кольорів шпалер.</string>
     <string name="provider_selected">Джерело шпалер оновлено</string>
@@ -42,7 +40,6 @@
     <string name="provider_configure">Налаштувати</string>
     <string name="provider_preview_description">Попередній перегляд шпалер</string>
     <string name="provider_preview_thumbnail">Попередній перегляд джерела</string>
-    <string name="title_color_provider_config">Суцільний колір</string>
     <string name="title_gradient_provider_config">Градієнт</string>
     <string name="gradient_add_color">Додати колір</string>
     <string name="gradient_edit_color_title">Оберіть колір</string>

@@ -74,17 +74,29 @@ class GalleryWall {
             val settings = Settings(prefs)
             val wm = WorkManager.getInstance(context.applicationContext)
 
-            val period = minutes ?: settings.period
+            val period = settings.period
             if (!settings.autoWallpaperEnabled || period <= 0) {
                 wm.cancelUniqueWork(UNIQUE_WORK_NAME)
                 return
             }
 
-            val intervalMinutes = clampPeriodicIntervalMinutes(period)
+            val intervalMinutes = if (minutes != null) {
+                minutes
+            } else {
+                when (settings.periodUnit) {
+                    "HOURS" -> period * 60L
+                    "DAYS" -> period * 24L * 60L
+                    "WEEKS" -> period * 7L * 24L * 60L
+                    "MONTHS" -> period * 30L * 24L * 60L
+                    else -> period
+                }
+            }
+
+            val clampedMinutes = clampPeriodicIntervalMinutes(intervalMinutes)
             val constraints = buildWorkConstraints(settings)
 
             val request = PeriodicWorkRequestBuilder<GalleryWallRefreshWorker>(
-                intervalMinutes,
+                clampedMinutes,
                 TimeUnit.MINUTES
             )
                 .setConstraints(constraints)
@@ -99,17 +111,29 @@ class GalleryWall {
         }
 
         /** Renders the current wallpaper using the active provider from [Settings]. */
-        fun createWallpaperBitmap(context: Context): Bitmap? {
-            return try {
-                val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-                val settings = Settings(prefs)
-                val provider = WallpaperProviderRegistry.get(settings.activeProviderId)
-                    ?: WallpaperProviderRegistry.defaultProvider
-                provider.generateBitmap(context)
-            } catch (e: Exception) {
-                Log.w(TAG, "createWallpaperBitmap failed", e)
-                null
+        fun createWallpaperBitmap(context: Context): Bitmap {
+            val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+            val settings = Settings(prefs)
+            val providerId = settings.activeProviderId
+            val colors = settings.generatedColorsHex
+            
+            val promptStr = if (providerId == "local_ai") {
+                val rawPrompt = settings.automationPrompt
+                val resolvedPrompt = try {
+                    com.baysoft.gallerywall.ml.DynamicPromptParser.parse(context, rawPrompt)
+                } catch (e: Exception) {
+                    rawPrompt
+                }
+                "Raw: \"$rawPrompt\", Resolved: \"$resolvedPrompt\""
+            } else {
+                "None"
             }
+            
+            Log.i(TAG, "Wallpaper generation started | Mode: $providerId | Colors: $colors | Prompt: $promptStr")
+
+            val provider = WallpaperProviderRegistry.get(providerId)
+                ?: WallpaperProviderRegistry.defaultProvider
+            return provider.generateBitmap(context)
         }
 
         fun updateWallpaper(context: Context, image: Bitmap?) {
@@ -128,8 +152,11 @@ class GalleryWall {
         // Save wallpaper to database as recent
         fun recordWallpaper(context: Context, image: Bitmap?) {
             GlobalScope.launch {
+                val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+                val settings = Settings(prefs)
+                val providerId = settings.activeProviderId
                 image?.let { bmp ->
-                    val file = java.io.File(context.filesDir, "wallpaper_${System.currentTimeMillis()}.jpg")
+                    val file = java.io.File(context.filesDir, "wallpaper_${providerId}_${System.currentTimeMillis()}.jpg")
                     java.io.FileOutputStream(file).use { out ->
                         bmp.compress(Bitmap.CompressFormat.JPEG, 95, out)
                     }

@@ -29,4 +29,15 @@ class WallpaperGeneratorTest {
         val list = WallpaperGenerator.parseColors(",,,,not-a-color")
         assertEquals(3, list.size)
     }
+
+    @Test
+    fun renderTiledWallpaper_createsCorrectDimensions() {
+        val context = org.robolectric.RuntimeEnvironment.getApplication()
+        val tile = android.graphics.Bitmap.createBitmap(128, 128, android.graphics.Bitmap.Config.ARGB_8888)
+        val wallpaper = WallpaperGenerator.renderTiledWallpaper(context, tile)
+        
+        val (expectedW, expectedH) = WallpaperGenerator.resolveSize(context)
+        assertEquals(expectedW, wallpaper.width)
+        assertEquals(expectedH, wallpaper.height)
+    }
 }

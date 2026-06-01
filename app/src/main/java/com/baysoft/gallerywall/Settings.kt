@@ -27,16 +27,6 @@ class Settings(private val preferences: SharedPreferences) {
         get() = preferences.getString(PREF_GENERATED_COLORS, DEFAULT_GENERATED_COLORS)
             ?: DEFAULT_GENERATED_COLORS
 
-    /**
-     * Solid fill color for [com.baysoft.gallerywall.provider.ColorProvider].
-     * If unset, derived from the first color of [generatedColorsHex] until saved explicitly.
-     */
-    val colorProviderSolidHex: String
-        get() = preferences.getString(PREF_COLOR_PROVIDER_SOLID, null)
-            ?: WallpaperGenerator.colorToHexString(
-                WallpaperGenerator.parseColors(generatedColorsHex).first(),
-            )
-
     val notification: Boolean
         get() = preferences.getBoolean(PREF_NOTIFICATION, true)
 
@@ -49,6 +39,19 @@ class Settings(private val preferences: SharedPreferences) {
     val lastAppliedWallpaperPath: String?
         get() = preferences.getString(PREF_LAST_APPLIED_WALLPAPER_PATH, null)
 
+    val automationPrompt: String
+        get() = preferences.getString(PREF_AUTOMATION_PROMPT, DEFAULT_AUTOMATION_PROMPT) ?: DEFAULT_AUTOMATION_PROMPT
+
+    val activeModelPath: String?
+        get() = preferences.getString(PREF_ACTIVE_MODEL_PATH, null)
+
+    val periodUnit: String
+        get() = preferences.getString(PREF_PERIOD_UNIT, DEFAULT_PERIOD_UNIT) ?: DEFAULT_PERIOD_UNIT
+
+    /** Scale factor applied to the native 64×64 model output (e.g. 2 → 128×128). */
+    val scaleFactor: Int
+        get() = preferences.getInt(PREF_SCALE_FACTOR, DEFAULT_SCALE_FACTOR)
+
     companion object {
         const val PREF_PERIOD = "pref_period"
         const val PREF_AUTO_WALLPAPER_ENABLED = "pref_auto_wallpaper_enabled"
@@ -56,13 +59,20 @@ class Settings(private val preferences: SharedPreferences) {
         const val PREF_CONSTRAINT_CHARGING = "pref_constraint_charging"
         const val PREF_CONSTRAINT_IDLE = "pref_constraint_idle"
         const val PREF_GENERATED_COLORS = "pref_generated_colors"
-        const val PREF_COLOR_PROVIDER_SOLID = "pref_color_provider_solid"
         const val PREF_NOTIFICATION = "pref_notification"
         const val PREF_WALLPAPER_PROVIDER = "pref_wallpaper_provider"
         const val PREF_WALLPAPER_SOURCE_NAV = "pref_wallpaper_source_nav"
         const val PREF_LAST_APPLIED_WALLPAPER_PATH = "pref_last_applied_wallpaper_path"
+        
+        const val PREF_AUTOMATION_PROMPT = "pref_automation_prompt"
+        const val PREF_ACTIVE_MODEL_PATH = "pref_active_model_path"
+        const val PREF_PERIOD_UNIT = "pref_period_unit"
+        const val PREF_SCALE_FACTOR = "pref_scale_factor"
 
         const val DEFAULT_GENERATED_COLORS = "#6750A4,#625B71,#7D5260"
+        const val DEFAULT_AUTOMATION_PROMPT = "seamless cute pastel floral pattern, [TimeOfDay], [Weather]"
+        const val DEFAULT_PERIOD_UNIT = "HOURS"
+        const val DEFAULT_SCALE_FACTOR = 2
 
         const val DEFAULT_PERIOD_MINUTES = 360L
         const val DEFAULT_PERIOD_MINUTES_STRING = "360"

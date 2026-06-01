@@ -38,15 +38,12 @@
     <string name="tab_providers">Providers</string>
     <string name="tab_settings">Settings</string>
 
-    <string name="provider_color_title">Solid color</string>
-    <string name="provider_color_summary">Fill the screen with the first color from wallpaper colors.</string>
     <string name="provider_gradient_title">Gradient</string>
     <string name="provider_gradient_summary">Vertical gradient through every color in wallpaper colors.</string>
     <string name="provider_selected">Wallpaper source updated</string>
     <string name="provider_configure">Configure</string>
     <string name="provider_preview_description">Wallpaper preview</string>
     <string name="provider_preview_thumbnail">Provider preview</string>
-    <string name="title_color_provider_config">Solid color</string>
     <string name="title_gradient_provider_config">Gradient</string>
     <string name="gradient_add_color">Add color</string>
     <string name="gradient_edit_color_title">Choose color</string>
@@ -67,4 +64,10 @@
     <string name="menu_help">Help</string>
     <string name="settings_help_title">Auto Wallpaper</string>
     <string name="settings_help_message">Turn on Auto Wallpaper to refresh on a schedule. Interval chooses how often. Conditions delay refresh until your device meets them (for example Wi‑Fi only). Choose Solid color or Gradient under Wallpaper source (Providers tab).</string>
+
+    <!-- Tiling and AI Providers -->
+    <string name="provider_noise_title">Procedural Noise</string>
+    <string name="provider_noise_summary">Generate beautiful seamless organic math-noise tiled patterns locally.</string>
+    <string name="provider_ai_title">On-Device AI Generator</string>
+    <string name="provider_ai_summary">Synthesize stunning 64x64 pixel art tile wallpapers completely offline from text prompts using tiny local AI models.</string>
 </resources>

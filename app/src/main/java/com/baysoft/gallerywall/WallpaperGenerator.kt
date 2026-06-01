@@ -74,8 +74,22 @@ object WallpaperGenerator {
         return bmp
     }
 
+    internal fun renderTiledWallpaper(context: Context, tile: Bitmap): Bitmap {
+        val (w, h) = resolveSize(context)
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        val paint = Paint().apply {
+            isAntiAlias = false
+            isFilterBitmap = false
+            shader = android.graphics.BitmapShader(tile, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT)
+        }
+        canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), paint)
+        return bmp
+    }
+
     private fun gradientPositions(n: Int): FloatArray {
         if (n < 2) return floatArrayOf(0f, 1f)
         return FloatArray(n) { i -> i.toFloat() / (n - 1) }
     }
 }
+
