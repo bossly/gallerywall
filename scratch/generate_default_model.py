@@ -2,70 +2,87 @@ import tensorflow as tf
 from tensorflow.keras import layers
 import os
 
-def make_generator_model(num_classes=10, embedding_dim=50):
-    noise_input = layers.Input(shape=(100,), name="noise")
-    label_input = layers.Input(shape=(1,), dtype=tf.int32, name="label")
+def make_diffusion_model(img_size=32, T=5, embedding_dim=64):
+    """
+    Lightweight Conditional U-Net for Denoising Diffusion.
+    Supports dynamic H and W (by compiling to standard square dimensions).
+    """
+    x_t_input = layers.Input(shape=(img_size, img_size, 4), name="x_t")
+    t_input = layers.Input(shape=(1,), dtype=tf.int32, name="t")
     
-    # Safely clamp labels to prevent "index out of range" exceptions in Embedding
-    clamped_labels = layers.Lambda(lambda x: tf.minimum(tf.maximum(x, 0), num_classes - 1))(label_input)
+    # Timestep Embedding
+    t_emb = layers.Embedding(T, embedding_dim)(t_input)
+    t_emb = layers.Reshape((embedding_dim,))(t_emb)
+    t_emb = layers.Dense(128)(t_emb)
+    t_emb = layers.ReLU()(t_emb)
     
-    # Embedding layer for label
-    label_embedding = layers.Embedding(num_classes, embedding_dim)(clamped_labels)
-    label_embedding = layers.Reshape((embedding_dim,))(label_embedding)
+    # Down 1
+    d1 = layers.Conv2D(32, kernel_size=3, padding='same')(x_t_input)
+    d1 = layers.GroupNormalization(groups=8)(d1)
+    d1 = layers.ReLU()(d1)
     
-    # Concatenate noise and label embedding
-    x = layers.Concatenate()([noise_input, label_embedding]) # Shape: (batch, 150)
+    cond_d1 = layers.Dense(32)(t_emb)
+    cond_d1 = layers.Reshape((1, 1, 32))(cond_d1)
+    d1 = layers.Add()([d1, cond_d1])
     
-    # Reshape to (1, 1, 150) for Conv2DTranspose
-    x = layers.Reshape((1, 1, 150))(x)
+    # Down 2
+    d2 = layers.Conv2D(64, kernel_size=4, strides=2, padding='same')(d1)
+    d2 = layers.GroupNormalization(groups=8)(d2)
+    d2 = layers.ReLU()(d2)
     
-    # Conv2DTranspose layers matching the original PyTorch Generator architecture (HWC format)
-    # State: 1 x 1 x 150
-    x = layers.Conv2DTranspose(256, kernel_size=4, strides=1, padding='valid', use_bias=False)(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.ReLU()(x)
-    # State: 4 x 4 x 256
+    cond_d2 = layers.Dense(64)(t_emb)
+    cond_d2 = layers.Reshape((1, 1, 64))(cond_d2)
+    d2 = layers.Add()([d2, cond_d2])
     
-    x = layers.Conv2DTranspose(128, kernel_size=4, strides=2, padding='same', use_bias=False)(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.ReLU()(x)
-    # State: 8 x 8 x 128
+    # Down 3
+    d3 = layers.Conv2D(128, kernel_size=4, strides=2, padding='same')(d2)
+    d3 = layers.GroupNormalization(groups=8)(d3)
+    d3 = layers.ReLU()(d3)
     
-    x = layers.Conv2DTranspose(64, kernel_size=4, strides=2, padding='same', use_bias=False)(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.ReLU()(x)
-    # State: 16 x 16 x 64
+    # Bottleneck
+    b = layers.Conv2D(128, kernel_size=3, padding='same')(d3)
+    b = layers.GroupNormalization(groups=8)(b)
+    b = layers.ReLU()(b)
     
-    x = layers.Conv2DTranspose(32, kernel_size=4, strides=2, padding='same', use_bias=False)(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.ReLU()(x)
-    # State: 32 x 32 x 32
+    # Up 1
+    u1 = layers.Conv2DTranspose(64, kernel_size=4, strides=2, padding='same')(b)
+    u1 = layers.Concatenate()([u1, d2])
+    u1 = layers.Conv2D(64, kernel_size=3, padding='same')(u1)
+    u1 = layers.GroupNormalization(groups=8)(u1)
+    u1 = layers.ReLU()(u1)
     
-    x = layers.Conv2DTranspose(4, kernel_size=4, strides=2, padding='same', use_bias=False)(x)
-    # State: 64 x 64 x 4
+    # Up 2
+    u2 = layers.Conv2DTranspose(32, kernel_size=4, strides=2, padding='same')(u1)
+    u2 = layers.Concatenate()([u2, d1])
+    u2 = layers.Conv2D(32, kernel_size=3, padding='same')(u2)
+    u2 = layers.GroupNormalization(groups=8)(u2)
+    u2 = layers.ReLU()(u2)
     
-    out = layers.Activation('tanh', name="output")(x)
+    # Output to predict noise
+    out = layers.Conv2D(4, kernel_size=3, padding='same', activation=None, name="output")(u2)
     
-    model = tf.keras.Model(inputs=[noise_input, label_input], outputs=out)
+    model = tf.keras.Model(inputs=[x_t_input, t_input], outputs=out)
     return model
 
 def main():
-    print("Initializing PixelArtGenerator...")
-    generator = make_generator_model()
+    print("Initializing PixelArt Diffusion U-Net Model (32x32)...")
+    model = make_diffusion_model(img_size=32)
     
-    # Initialize weights with some randomized noise to produce visual variety even prior to training
-    for layer in generator.layers:
-        if isinstance(layer, layers.Conv2DTranspose):
-            layer.set_weights([tf.random.normal(layer.weights[0].shape, 0.0, 0.02).numpy()])
-        elif isinstance(layer, layers.BatchNormalization):
-            gamma = tf.random.normal(layer.weights[0].shape, 1.0, 0.02).numpy()
-            beta = tf.zeros(layer.weights[1].shape).numpy()
-            mean = layer.weights[2].numpy()
-            variance = layer.weights[3].numpy()
-            layer.set_weights([gamma, beta, mean, variance])
+    # Initialize weights with randomized Gaussian noise to generate structured variety prior to training
+    for layer in model.layers:
+        if hasattr(layer, 'weights') and len(layer.weights) > 0:
+            new_weights = []
+            for weight in layer.weights:
+                if 'kernel' in weight.name or 'embeddings' in weight.name:
+                    new_weights.append(tf.random.normal(weight.shape, 0.0, 0.02).numpy())
+                elif 'bias' in weight.name:
+                    new_weights.append(tf.zeros(weight.shape).numpy())
+                else:
+                    new_weights.append(tf.ones(weight.shape).numpy())
+            layer.set_weights(new_weights)
 
-    print("Converting Keras generator model to TensorFlow Lite (.tflite)...")
-    converter = tf.lite.TFLiteConverter.from_keras_model(generator)
+    print("Converting Keras diffusion model to TensorFlow Lite (.tflite)...")
+    converter = tf.lite.TFLiteConverter.from_keras_model(model)
     tflite_model = converter.convert()
     
     output_dir = "app/src/main/assets"
@@ -74,26 +91,8 @@ def main():
     
     with open(output_path, "wb") as f:
         f.write(tflite_model)
-
-    # Export default companion class style mapping JSON
-    mapping_path = output_path.replace(".tflite", ".json")
-    print(f"Saving default class style mapping JSON to: {mapping_path}")
-    import json
-    default_mapping = {
-        "forest": 0, "green": 0, "tree": 0, "nature": 0,
-        "cyber": 1, "neon": 1, "synth": 1, "future": 1,
-        "space": 2, "star": 2, "galaxy": 2, "night": 2,
-        "castle": 3, "dungeon": 3, "stone": 3, "retro": 3,
-        "desert": 4, "sand": 4, "gold": 4, "sun": 4,
-        "ocean": 5, "water": 5,
-        "snow": 6, "ice": 6, "winter": 6, "cold": 6,
-        "lava": 7, "fire": 7, "magma": 7, "red": 7,
-        "candy": 8, "pink": 8, "sweet": 8, "cute": 8
-    }
-    with open(mapping_path, "w") as f:
-        json.dump(default_mapping, f, indent=2)
         
-    print("SUCCESS: Default mobile model pixel_art_model.tflite successfully created!")
+    print(f"SUCCESS: Default 32x32 mobile diffusion model written to {output_path}!")
 
 if __name__ == "__main__":
     main()

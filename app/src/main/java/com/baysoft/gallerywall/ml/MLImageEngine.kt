@@ -12,33 +12,13 @@ import java.nio.channels.FileChannel
 
 /**
  * On-device ML image generator interface using TensorFlow Lite.
- * Loads a TensorFlow Lite (.tflite) model to generate 64x64 pixel art sprite grids
+ * Loads a TensorFlow Lite (.tflite) diffusion model to generate pixel art sprite grids
  * locally in milliseconds, with zero JNI NDK compiler dependencies.
  */
 class MLImageEngine private constructor() {
 
     private var interpreter: Interpreter? = null
     private var loadedModelPath: String? = null
-    private var classMapping: Map<String, Long>? = null
-
-    /**
-     * Parses and loads prompt-to-class-index map from JSON strings.
-     */
-    fun loadMapping(jsonString: String) {
-        try {
-            val mapping = mutableMapOf<String, Long>()
-            val jsonObject = org.json.JSONObject(jsonString)
-            val keys = jsonObject.keys()
-            while (keys.hasNext()) {
-                val key = keys.next()
-                mapping[key.lowercase()] = jsonObject.getLong(key)
-            }
-            classMapping = mapping
-            Log.i(TAG, "Successfully loaded class style mapping: $classMapping")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error parsing class mapping JSON", e)
-        }
-    }
 
     /**
      * Maps an asset file descriptor into memory.
@@ -70,15 +50,6 @@ class MLImageEngine private constructor() {
             interpreter = Interpreter(File(modelPath), options)
             loadedModelPath = modelPath
             Log.i(TAG, "TensorFlow Lite model successfully loaded from path: $modelPath")
-            
-            // Try loading companion style mapper JSON
-            val jsonFile = File(modelPath.replace(".tflite", ".json", ignoreCase = true))
-            if (jsonFile.exists()) {
-                loadMapping(jsonFile.readText())
-            } else {
-                classMapping = null
-            }
-            
             true
         } catch (e: Exception) {
             Log.e(TAG, "Error loading TensorFlow Lite model from: $modelPath", e)
@@ -101,16 +72,6 @@ class MLImageEngine private constructor() {
             interpreter = Interpreter(buffer, options)
             loadedModelPath = cacheKey
             Log.i(TAG, "TensorFlow Lite model successfully loaded from assets: $assetName")
-            
-            // Try loading companion style mapper JSON from assets
-            try {
-                val jsonAssetName = assetName.replace(".tflite", ".json", ignoreCase = true)
-                val jsonStr = context.assets.open(jsonAssetName).bufferedReader().use { it.readText() }
-                loadMapping(jsonStr)
-            } catch (e: Exception) {
-                classMapping = null
-            }
-            
             true
         } catch (e: Exception) {
             Log.e(TAG, "Error loading TensorFlow Lite model from asset: $assetName", e)
@@ -119,24 +80,27 @@ class MLImageEngine private constructor() {
     }
 
     /**
-     * Generates a square seamless pixel-art tile bitmap based on a text prompt and active color configurations.
-     * @param prompt The descriptive text prompt for the texture.
+     * Generates a square seamless pixel-art tile bitmap based on a text prompt and active color configurations
+     * using a 5-step DDPM (Denoising Diffusion Probabilistic Model) loop.
+     * @param prompt The descriptive text prompt for the texture (unused for unconditional diffusion).
      * @param colors The list of user-configured colors to map or tint the sprite palette.
-     * @param size Resolution size: unused since GAN outputs native 64x64 grids.
-     * @param steps Unused since GAN runs in a single forward pass.
+     * @param size Unused since output size is read dynamically from the model's dimensions.
+     * @param steps Unused since the optimized diffusion loop runs for 5 steps.
      * @param seed Random seed for reproducibility. Set to -1 for random.
      * @param circular Unused.
+     * @param supportTransparency Whether to preserve generated alpha transparency or force fully opaque.
      */
     fun generateTile(
         prompt: String,
         colors: List<Int>,
-        size: Int = 64,
-        steps: Int = 1,
+        size: Int = 32,
+        steps: Int = 5,
         seed: Int = -1,
-        circular: Boolean = true
+        circular: Boolean = true,
+        supportTransparency: Boolean = true
     ): Bitmap? {
         val modelName = loadedModelPath?.let { File(it).name } ?: "Default (Assets)"
-        Log.d(TAG, "ML generating process started | Model: $modelName | Seed: $seed | Steps: $steps")
+        Log.d(TAG, "ML generating process started | Model: $modelName | Seed: $seed | Steps: 5")
 
         val startTime = System.currentTimeMillis()
         var generatedTile: Bitmap? = null
@@ -147,57 +111,118 @@ class MLImageEngine private constructor() {
                 return null
             }
 
-            // 1. Generate standard latent vector z ~ N(0, 1) of size 100
+            // 1. Read the output tensor dimensions dynamically (supports 32x32, 64x64, etc.)
+            val outputTensor = interpreter!!.getOutputTensor(0)
+            val shape = outputTensor.shape() // Shape: [1, H, W, 4]
+            val height = shape[1]
+            val width = shape[2]
+            Log.d(TAG, "Dynamic model output shape detected: ${height}x${width} pixels")
+
+            // 2. Initialize x_t with Gaussian noise N(0, 1) of shape [1, H, W, 4]
             val rand = if (seed == -1) {
                 java.util.Random()
             } else {
                 java.util.Random(seed.toLong())
             }
-            val noiseInput = Array(1) { FloatArray(100) { rand.nextGaussian().toFloat() } }
-
-            // 2. Resolve the text prompt into a style class index (0-9)
-            val classLabel = mapPromptToClassLabel(prompt)
-            val labelInput = Array(1) { IntArray(1) { classLabel.toInt() } }
-
-            Log.d(TAG, "Resolved prompt '$prompt' to class index $classLabel")
-
-            // 3. Prepare output buffer: TFLite model output has HWC shape [1, 64, 64, 4]
-            val outputBuffer = Array(1) { Array(64) { Array(64) { FloatArray(4) } } }
-
-            val inputs = arrayOf(noiseInput, labelInput)
-            val outputs = mapOf(0 to outputBuffer)
-
-            // 4. Run TFLite inference
-            try {
-                interpreter!!.runForMultipleInputsOutputs(inputs, outputs)
-            } catch (e: Exception) {
-                if (classLabel != 0L) {
-                    Log.w(TAG, "TFLite forward pass failed for label $classLabel. Retrying with fallback index 0.")
-                    val fallbackLabelInput = Array(1) { IntArray(1) { 0 } }
-                    val fallbackInputs = arrayOf(noiseInput, fallbackLabelInput)
-                    interpreter!!.runForMultipleInputsOutputs(fallbackInputs, outputs)
-                } else {
-                    throw e
+            val x_t = Array(1) { Array(height) { Array(width) { FloatArray(4) } } }
+            for (y in 0 until height) {
+                for (x in 0 until width) {
+                    for (c in 0 until 4) {
+                        x_t[0][y][x][c] = rand.nextGaussian().toFloat()
+                    }
                 }
             }
 
-            val pixelCount = 64 * 64
+            // 3. Precompute DDPM schedule parameters for T=5 steps
+            val T = 5
+            val betas = FloatArray(T) { i -> 0.1f + 0.8f * (i.toFloat() / (T - 1)) }
+            val alphas = FloatArray(T) { i -> 1.0f - betas[i] }
+            val alphasCumprod = FloatArray(T)
+            var prod = 1.0f
+            for (i in 0 until T) {
+                prod *= alphas[i]
+                alphasCumprod[i] = prod
+            }
+            val alphasCumprodPrev = FloatArray(T) { i -> if (i == 0) 1.0f else alphasCumprod[i - 1] }
+
+            val sqrtRecipAlphas = FloatArray(T) { i -> Math.sqrt(1.0 / alphas[i].toDouble()).toFloat() }
+            val sqrtOneMinusAlphasCumprod = FloatArray(T) { i -> Math.sqrt(1.0 - alphasCumprod[i].toDouble()).toFloat() }
+            val posteriorVariance = FloatArray(T) { i ->
+                (betas[i] * (1.0f - alphasCumprodPrev[i]) / (1.0f - alphasCumprod[i]))
+            }
+            val sqrtPosteriorVariance = FloatArray(T) { i -> Math.sqrt(posteriorVariance[i].toDouble()).toFloat() }
+
+            // 4. Map model input tensor indices dynamically by name
+            val inputCount = interpreter!!.getInputTensorCount()
+            var xTIndex = 0
+            var tIndex = 1
+            var labelIndex = -1
+
+            for (i in 0 until inputCount) {
+                val name = interpreter!!.getInputTensor(i).name().lowercase()
+                if (name.contains("x_t") || name.contains("image") || name.contains("input")) {
+                    xTIndex = i
+                } else if (name.contains("t") || name.contains("step")) {
+                    tIndex = i
+                } else if (name.contains("label") || name.contains("class")) {
+                    labelIndex = i
+                }
+            }
+
+            val noisePred = Array(1) { Array(height) { Array(width) { FloatArray(4) } } }
+
+            // 5. Run the 5-step DDPM sampling loop
+            for (t in T - 1 downTo 0) {
+                val tInput = Array(1) { IntArray(1) { t } }
+                val inputs = arrayOfNulls<Any>(inputCount)
+                inputs[xTIndex] = x_t
+                inputs[tIndex] = tInput
+                if (labelIndex != -1) {
+                    inputs[labelIndex] = Array(1) { IntArray(1) { 0 } } // unconditional/default label
+                }
+
+                val outputs = mapOf(0 to noisePred)
+                interpreter!!.runForMultipleInputsOutputs(inputs, outputs)
+
+                // Update x_t -> x_{t-1} using DDPM sampler step with intermediate clipping
+                val recipAlpha = sqrtRecipAlphas[t]
+                val betaTerm = betas[t] / sqrtOneMinusAlphasCumprod[t]
+                val sigma = if (t > 0) sqrtPosteriorVariance[t] else 0.0f
+
+                for (y in 0 until height) {
+                    for (x in 0 until width) {
+                        for (c in 0 until 4) {
+                            val xtVal = x_t[0][y][x][c]
+                            val epsVal = noisePred[0][y][x][c]
+                            val z = if (t > 0) rand.nextGaussian().toFloat() else 0.0f
+                            val nextVal = recipAlpha * (xtVal - betaTerm * epsVal) + sigma * z
+                            x_t[0][y][x][c] = nextVal.coerceIn(-1.0f, 1.0f)
+                        }
+                    }
+                }
+            }
+
+            // 6. Convert the generated final x_0 tensor [-1, 1] into a dynamic pixel array
+            val pixelCount = height * width
             val pixels = IntArray(pixelCount)
 
-            // 5. Map HWC float output array [-1, 1] to pixel colors with RGBA transparency
-            for (y in 0 until 64) {
-                for (x in 0 until 64) {
-                    val i = y * 64 + x
-                    val rVal = outputBuffer[0][y][x][0]
-                    val gVal = outputBuffer[0][y][x][1]
-                    val bVal = outputBuffer[0][y][x][2]
-                    val aVal = outputBuffer[0][y][x][3]
+            for (y in 0 until height) {
+                for (x in 0 until width) {
+                    val i = y * width + x
+                    val rVal = x_t[0][y][x][0]
+                    val gVal = x_t[0][y][x][1]
+                    val bVal = x_t[0][y][x][2]
+                    val aVal = x_t[0][y][x][3]
 
-                    // Rescale tanh output [-1, 1] to [0, 255]
+                    // Rescale output [-1, 1] to [0, 255]
                     val r = ((rVal + 1f) * 127.5f).toInt().coerceIn(0, 255)
                     val g = ((gVal + 1f) * 127.5f).toInt().coerceIn(0, 255)
                     val b = ((bVal + 1f) * 127.5f).toInt().coerceIn(0, 255)
-                    val a = ((aVal + 1f) * 127.5f).toInt().coerceIn(0, 255)
+                    val a = if (supportTransparency) {
+                        ((aVal + 1f) * 127.5f).toInt().coerceIn(0, 255)
+                    } else {
+                        255
+                    }
 
                     if (colors.size > 1) {
                         // Apply visual harmony color-mapping: convert pixel to grayscale intensity
@@ -224,55 +249,22 @@ class MLImageEngine private constructor() {
                 }
             }
 
-            // 6. Build native 64x64 bitmap
-            generatedTile = Bitmap.createBitmap(pixels, 64, 64, Bitmap.Config.ARGB_8888)
+            // 7. Build dynamic sized bitmap
+            generatedTile = Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
 
         } catch (e: Exception) {
-            Log.e(TAG, "TensorFlow Lite generation failed", e)
+            Log.e(TAG, "TensorFlow Lite DDPM generation failed", e)
             throw e
         }
 
         val duration = System.currentTimeMillis() - startTime
         if (generatedTile != null) {
-            Log.d(TAG, "ML generating process SUCCEEDED | Duration: ${duration}ms | Size: 64x64")
+            Log.d(TAG, "ML generating process SUCCEEDED | Duration: ${duration}ms | Size: ${generatedTile.width}x${generatedTile.height}")
         } else {
             Log.e(TAG, "ML generating process FAILED | Duration: ${duration}ms")
         }
 
         return generatedTile
-    }
-
-    private fun mapPromptToClassLabel(prompt: String): Long {
-        val p = prompt.lowercase()
-        
-        // 1. Check dynamic JSON class mapping first if loaded
-        classMapping?.let { mapping ->
-            for ((keyword, label) in mapping) {
-                if (p.contains(keyword)) {
-                    return label
-                }
-            }
-        }
-
-        // 2. Fallback to hardcoded default mapping
-        return when {
-            // User's custom dataset mapping (e.g. 3-class pirate/coins map)
-            p.contains("coin") -> 0L
-            p.contains("map") -> 1L
-            p.contains("pirate") || p.contains("sea") || p.contains("ship") -> 2L
-
-            // Default model class mapping
-            p.contains("forest") || p.contains("green") || p.contains("tree") || p.contains("nature") -> 0L
-            p.contains("cyber") || p.contains("neon") || p.contains("synth") || p.contains("future") -> 1L
-            p.contains("space") || p.contains("star") || p.contains("galaxy") || p.contains("night") -> 2L
-            p.contains("castle") || p.contains("dungeon") || p.contains("stone") || p.contains("retro") -> 3L
-            p.contains("desert") || p.contains("sand") || p.contains("gold") || p.contains("sun") -> 4L
-            p.contains("ocean") || p.contains("water") -> 5L
-            p.contains("snow") || p.contains("ice") || p.contains("winter") || p.contains("cold") -> 6L
-            p.contains("lava") || p.contains("fire") || p.contains("magma") || p.contains("red") -> 7L
-            p.contains("candy") || p.contains("pink") || p.contains("sweet") || p.contains("cute") -> 8L
-            else -> 0L // Highly robust default fallback to prevent out-of-range index crashes on smaller models!
-        }
     }
 
     companion object {

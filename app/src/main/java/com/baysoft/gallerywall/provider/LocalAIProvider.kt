@@ -54,18 +54,17 @@ object LocalAIProvider : WallpaperProvider {
             throw IllegalStateException("Local AI generation failed: Failed to load any TensorFlow Lite models (default asset load failed).")
         }
         
-        // 3. Generate ML 64x64 pixel art tile
+        // 3. Generate ML pixel art tile using dynamic diffusion
         val rawTile = engine.generateTile(
             prompt = prompt,
             colors = colors,
-            size = 64,
-            steps = 1,
-            circular = true
+            seed = -1,
+            supportTransparency = true
         ) ?: throw IllegalStateException("Local AI generation failed: Engine returned a null bitmap.")
         
-        // 4. Upscale tile by the configured scale factor (e.g. 2× → 128×128)
+        // 4. Upscale tile by the configured scale factor (e.g. 2×)
         val scaleFactor = settings.scaleFactor
-        val scaledSize = 64 * scaleFactor
+        val scaledSize = rawTile.width * scaleFactor
         val generatedTile = if (scaleFactor > 1) {
             Bitmap.createScaledBitmap(rawTile, scaledSize, scaledSize, true)
         } else {
