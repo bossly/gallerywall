@@ -22,6 +22,9 @@ class Settings(private val preferences: SharedPreferences) {
     val constraintIdle: Boolean
         get() = preferences.getBoolean(PREF_CONSTRAINT_IDLE, false)
 
+    val constraintBatteryLow: Boolean
+        get() = preferences.getBoolean(PREF_CONSTRAINT_BATTERY_LOW, true)
+
     /** Comma-separated hex colors for [com.baysoft.gallerywall.provider.GradientProvider]. */
     val generatedColorsHex: String
         get() = preferences.getString(PREF_GENERATED_COLORS, DEFAULT_GENERATED_COLORS)
@@ -58,6 +61,7 @@ class Settings(private val preferences: SharedPreferences) {
         const val PREF_CONSTRAINT_WIFI = "pref_constraint_wifi"
         const val PREF_CONSTRAINT_CHARGING = "pref_constraint_charging"
         const val PREF_CONSTRAINT_IDLE = "pref_constraint_idle"
+        const val PREF_CONSTRAINT_BATTERY_LOW = "pref_constraint_battery_low"
         const val PREF_GENERATED_COLORS = "pref_generated_colors"
         const val PREF_NOTIFICATION = "pref_notification"
         const val PREF_WALLPAPER_PROVIDER = "pref_wallpaper_provider"

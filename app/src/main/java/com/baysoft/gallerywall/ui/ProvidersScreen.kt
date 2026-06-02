@@ -89,7 +89,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
             name = "Retro Pixel Art GAN (Default)",
             description = "High-speed 1-step 64x64 generative network. Generates gorgeous retro sprites, custom colored using your harmonious active palette.",
             size = "8.6 MB",
-            downloadUrl = "https://huggingface.co/bossly/pixel-art-gan/resolve/main/pixel_art_model.ptl"
+            downloadUrl = "https://huggingface.co/bossly/pixel-art-gan/resolve/main/pixel_art_model.tflite"
         )
     )
 
@@ -99,7 +99,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
     // File exists helper
     val getModelFile = { id: String ->
         val baseDir = context.getExternalFilesDir("models") ?: File(context.filesDir, "models")
-        File(baseDir, "$id.ptl")
+        File(baseDir, "$id.tflite")
     }
 
     // Refresh model state helper
@@ -581,7 +581,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
             item {
                 Spacer(modifier = Modifier.height(24.dp))
                 Text(
-                    text = "3. On-Device AI Models (PyTorch)",
+                    text = "3. On-Device AI Models (TFLite)",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
@@ -676,7 +676,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                     Log.d("ProvidersScreen", "Configuring DownloadManager.Request...")
                                                     val request = DownloadManager.Request(Uri.parse(model.downloadUrl))
                                                         .setTitle(model.name)
-                                                        .setDescription("Downloading PyTorch on-device AI model weights")
+                                                        .setDescription("Downloading TensorFlow Lite on-device AI model weights")
                                                         .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                                                         .setDestinationUri(Uri.fromFile(file))
                                                         .setAllowedOverMetered(true)

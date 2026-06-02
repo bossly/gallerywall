@@ -60,53 +60,69 @@ lib/arm64-v8a/libstable-diffusion.so
 
 ----
 
-To run a local AI image generator on Android for 64x64 pixel art, the most efficient architecture is a lightweight PyTorch Mobile or ONNX Runtime model using a custom GAN or a small Diffusion model (like a downscaled Unet). Large models like Stable Diffusion are too slow and resource-heavy for mobile, but a dedicated 64x64 model can generate sprites locally in milliseconds.
+To run a local AI image generator on Android for 64x64 pixel art, the most efficient architecture is a lightweight TensorFlow Lite model using a custom GAN or a small Diffusion model (like a downscaled Unet). Large models like Stable Diffusion are too slow and resource-heavy for mobile, but a dedicated 64x64 model can generate sprites locally in milliseconds.
 
 ## 🛠️ Core Tech Stack
 
-* Model Runtime: ONNX Runtime Mobile or PyTorch Mobile.
+* Model Runtime: TensorFlow Lite.
 * Model Type: Tiny GAN (Generative Adversarial Network) or a mini Diffusion model trained on pixel art.
 * App Development: Kotlin using Android Studio.
 
 ------------------------------
-## 📋 Step-by-Step Implementation Guide## 1. Export the Model to Mobile Format
-You must first train or download a 64x64 model in Python, then convert it to a mobile-friendly format.
+## 📋 Step-by-Step Implementation Guide
 
-# Python snippet to export a PyTorch model to TorchScript for Androidimport torch
+## 1. Export the Model to Mobile Format
+You must first train or download a 64x64 model in Python using Keras/TensorFlow, then convert it to a mobile-friendly TFLite format.
+
+# Python snippet to export a Keras model to TensorFlow Lite for Android
+import tensorflow as tf
 model = TinyPixelArtGAN() # Your 64x64 trained model
-model.eval()
-# Create a random latent vector (noise input)example_input = torch.randn(1, 100) 
-# Trace and save the modeltraced_script_module = torch.jit.trace(model, example_input)
-traced_script_module.save("pixel_art_model.ptl")
+# Convert and save the model
+converter = tf.lite.TFLiteConverter.from_keras_model(model)
+tflite_model = converter.convert()
+with open("pixel_art_model.tflite", "wb") as f:
+    f.write(tflite_model)
 
 ## 2. Set Up Your Android Project
-Add the necessary PyTorch Mobile dependencies to your app's build.gradle.kts file:
+Add the necessary TensorFlow Lite dependency to your app's build.gradle file:
 
 dependencies {
-    implementation("org.pytorch:pytorch_android_lite:2.1.0")
-    implementation("org.pytorch:pytorch_android_torchvision_lite:2.1.0")
+    implementation("org.tensorflow:tensorflow-lite:2.14.0")
 }
 
-Place your exported pixel_art_model.ptl file directly into your project's app/src/main/assets/ directory.
+Place your exported pixel_art_model.tflite file directly into your project's app/src/main/assets/ directory.
 
 ## 3. Run Inference Locally in Kotlin
 Load the model into memory, generate a random noise vector, and run the forward pass to output the 64x64 image grid.
 
-import org.pytorch.LiteModuleLoaderimport org.pytorch.Tensorimport java.io.File
-// 1. Load the model from assetsfinal val model = LiteModuleLoader.load(assetFilePath(context, "pixel_art_model.ptl"))
-// 2. Generate random noise (latent vector) as inputfinal val latentSize = 100Lfinal val noiseArray = FloatArray(100) { java.util.Random().nextFloat() }final val inputTensor = Tensor.fromBlob(noiseArray, longArrayOf(1, latentSize))
-// 3. Run the model to get a 64x64 outputfinal val outputTensor = model.forward(IValue.from(inputTensor)).toTensor()final val floatOutputs = outputTensor.dataAsFloatArray // Size: 3 channels * 64 * 64
+import org.tensorflow.lite.Interpreter
+// 1. Load the model from assets
+val interpreter = Interpreter(loadModelFileFromAsset(context, "pixel_art_model.tflite"))
+// 2. Generate random noise (latent vector) and label as inputs
+val noiseInput = Array(1) { FloatArray(100) { java.util.Random().nextFloat() } }
+val labelInput = Array(1) { IntArray(1) { 0 } }
+// 3. Run the model to get a 64x64x3 output
+val outputBuffer = Array(1) { Array(64) { Array(64) { FloatArray(3) } } }
+val inputs = arrayOf(noiseInput, labelInput)
+val outputs = mapOf(0 to outputBuffer)
+interpreter.runForMultipleInputsOutputs(inputs, outputs)
 
 ## 4. Convert Tensor Data to a Pixel-Perfect Bitmap
 Because pixel art loses its crisp quality when stretched, you must convert the raw float array into an Android Bitmap and disable anti-aliasing during rendering.
 
-// Convert the 3x64x64 float array into color pixelsfinal val pixels = IntArray(64 * 64)for (i in 0 until 64 * 64) {
-    final val r = ((floatOutputs[i] + 1) * 127.5).toInt().coerceIn(0, 255)
-    final val g = ((floatOutputs[i + 4096] + 1) * 127.5).toInt().coerceIn(0, 255)
-    final val b = ((floatOutputs[i + 8192] + 1) * 127.5).toInt().coerceIn(0, 255)
-    pixels[i] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
+// Convert the [1][64][64][3] float array into color pixels
+val pixels = IntArray(64 * 64)
+for (y in 0 until 64) {
+    for (x in 0 until 64) {
+        val i = y * 64 + x
+        val r = ((outputBuffer[0][y][x][0] + 1f) * 127.5f).toInt().coerceIn(0, 255)
+        val g = ((outputBuffer[0][y][x][1] + 1f) * 127.5f).toInt().coerceIn(0, 255)
+        val b = ((outputBuffer[0][y][x][2] + 1f) * 127.5f).toInt().coerceIn(0, 255)
+        pixels[i] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
+    }
 }
-// Create the native 64x64 Bitmapfinal val bitmap = Bitmap.createBitmap(pixels, 64, 64, Bitmap.Config.ARGB_8888)
+// Create the native 64x64 Bitmap
+val bitmap = Bitmap.createBitmap(pixels, 64, 64, Bitmap.Config.ARGB_8888)
 
 ## 5. Display Without Blurring
 To scale the 64x64 sprite onto a high-resolution phone screen without making it blurry, force the UI to use Nearest Neighbor scaling.
@@ -118,13 +134,22 @@ To scale the 64x64 sprite onto a high-resolution phone screen without making it 
 
 # NEW features
 
-## Material You
+## Material 3 Expressive
 
 update Schedule Interval for Automation by using Slider to numbers
 
-## Execution Constrains
+## Support for tablet and TV
 
-Switch to disable generation when phone battery saving is on (less than 15%)
+## Support Car 
+
+
+## Resolve dependencies
+
+APK app-debug.apk is not compatible with 16 KB devices. Some libraries have LOAD segments not aligned at 16 KB boundaries:
+lib/arm64-v8a/libtensorflowlite_jni.so
+Starting November 1st, 2025, all new apps and updates to existing apps submitted to Google Play and targeting Android 15+ devices must support 16 KB page sizes. For more information about compatibility with 16 KB devices, visit developer.android.com/16kb-page-size.
+
+# update button 
 
 ## Screen to apply image filter for output wallpaper
 - black & white

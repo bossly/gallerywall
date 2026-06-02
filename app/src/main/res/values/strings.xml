@@ -20,6 +20,8 @@
     <string name="pref_constraint_charging_summary">Device must be connected to a power source</string>
     <string name="pref_constraint_idle_title">Idle</string>
     <string name="pref_constraint_idle_summary">Device must be inactive</string>
+    <string name="pref_constraint_battery_low_title">Battery Saver</string>
+    <string name="pref_constraint_battery_low_summary">Disable generation when battery level is less than 15%</string>
 
     <string name="pref_interval_title">Interval</string>
     <string name="pref_period_summary_format">Change wallpaper every: %1$s</string>

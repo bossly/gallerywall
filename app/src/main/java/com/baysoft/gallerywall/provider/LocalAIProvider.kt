@@ -35,23 +35,23 @@ object LocalAIProvider : WallpaperProvider {
         val prompt = DynamicPromptParser.parse(context, promptTemplate)
         Log.i(TAG, "Generating AI wallpaper. Raw: '$promptTemplate' -> Resolved: '$prompt'")
         
-        // 2. Load PyTorch model (with automatic fallback to assets if custom model fails or ends with non-ptl format)
+        // 2. Load TensorFlow Lite model (with automatic fallback to assets if custom model fails or ends with non-tflite format)
         val engine = MLImageEngine.getInstance()
         var modelLoaded = false
         
-        if (!activeModelPath.isNullOrEmpty() && activeModelPath.endsWith(".ptl", ignoreCase = true)) {
+        if (!activeModelPath.isNullOrEmpty() && activeModelPath.endsWith(".tflite", ignoreCase = true)) {
             modelLoaded = engine.loadModel(activeModelPath)
             if (!modelLoaded) {
-                Log.w(TAG, "Configured PyTorch model failed to load at: $activeModelPath. Falling back to default asset model.")
+                Log.w(TAG, "Configured TensorFlow Lite model failed to load at: $activeModelPath. Falling back to default asset model.")
             }
         }
         
         if (!modelLoaded) {
-            modelLoaded = engine.loadModelFromAsset(context, "pixel_art_model.ptl")
+            modelLoaded = engine.loadModelFromAsset(context, "pixel_art_model.tflite")
         }
         
         if (!modelLoaded) {
-            throw IllegalStateException("Local AI generation failed: Failed to load any PyTorch Lite models (default asset load failed).")
+            throw IllegalStateException("Local AI generation failed: Failed to load any TensorFlow Lite models (default asset load failed).")
         }
         
         // 3. Generate ML 64x64 pixel art tile

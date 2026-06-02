@@ -1,7 +1,7 @@
 # Local AI Model Training and Mobile Tracing Guide
 
 This guide walks you through the steps to:
-1. Set up a local Python development environment with PyTorch.
+1. Set up a local Python development environment with TensorFlow.
 2. Compile and trace the default out-of-the-box model into the app assets folder.
 3. Train a custom Conditional Generative Adversarial Network (WGAN-GP) on your own pixel art sprites, exporting the optimized model weights directly for mobile usage.
 
@@ -13,12 +13,12 @@ Ensure you run these steps in a standard shell on your host machine (outside the
 
 1. Install the required deep learning and imaging dependencies:
    ```bash
-   pip3 install torch torchvision pillow
+   pip3 install tensorflow pillow numpy
    ```
 
-2. Verify that PyTorch can access your hardware accelerator (e.g. Apple Silicon GPU acceleration via MPS):
+2. Verify that TensorFlow can access your hardware accelerator (e.g. Apple Silicon GPU acceleration via metal plug-in):
    ```bash
-   python3 -c "import torch; print('MPS Available:', torch.backends.mps.is_available())"
+   python3 -c "import tensorflow as tf; print('Physical Devices:', tf.config.list_physical_devices())"
    ```
 
 ---
@@ -32,10 +32,10 @@ python3 scratch/generate_default_model.py
 ```
 
 ### What this does:
-1. Instantiates a 10-class `PixelArtGenerator` with random weights.
-2. Traces the model's forward path using inputs: `noise (1, 100)` and `classLabel (1)`.
-3. Runs `optimize_for_mobile` to optimize execution graphs for Android CPU/GPU execution.
-4. Generates and saves `app/src/main/assets/pixel_art_model.ptl`.
+1. Instantiates a 10-class `PixelArtGenerator` with random weights using Keras.
+2. Compiles the model with `noise` shape `(1, 100)` and `label` shape `(1, 1)`.
+3. Runs the TensorFlow Lite converter to compile the graph into a lightweight mobile model.
+4. Generates and saves `app/src/main/assets/pixel_art_model.tflite`.
 
 Once completed, the Android application will work **instantly out-of-the-box** without any additional downloads!
 
@@ -49,7 +49,7 @@ To train the generator on your custom pixel art sprites (e.g. tiles, character s
 Organize your training images inside directories named by style/category inside a `dataset` folder:
 ```text
 dataset/
-├── forest/
+51── forest/
 │   ├── grass_tile1.png
 │   └── moss_tile2.png
 ├── cyberpunk/
@@ -67,35 +67,35 @@ Invoke the `train_pixel_art_gan.py` script. The script leverages **Wasserstein G
 ```bash
 python3 scratch/train_pixel_art_gan.py \
   --data_dir dataset \
-  --output_path app/src/main/assets/pixel_art_model.ptl \
+  --output_path app/src/main/assets/pixel_art_model.tflite \
   --epochs 150 \
   --batch_size 64
 ```
 
-### 3. Customize Class Mapping inside the App
-When training custom styles, update the prompt resolver in `MLImageEngine.kt` to match your directories and class numbers:
+### 3. Automated Zero-Code Class Mapping inside the App
+When training finishes, a companion `.json` mapping file is generated **automatically** (e.g. `pixel_art_model.json`). 
 
-```kotlin
-private fun mapPromptToClassLabel(prompt: String): Long {
-    val p = prompt.lowercase()
-    return when {
-        p.contains("forest") || p.contains("nature") -> 0L // Matches "dataset/forest"
-        p.contains("cyber") || p.contains("neon") -> 1L   // Matches "dataset/cyberpunk"
-        p.contains("space") || p.contains("star") -> 2L   // Matches "dataset/space"
-        else -> 0L
-    }
+Simply place **both** `pixel_art_model.tflite` and `pixel_art_model.json` inside the app's assets folder (or import them dynamically on the Providers tab). The Android application will dynamically read the mapping on model startup and map your style subdirectories to prompt keywords in real-time with **zero code modifications**!
+
+For example, if you trained categories `cannon`, `chest`, and `coins`, your generated `pixel_art_model.json` will be:
+```json
+{
+  "cannon": 0,
+  "chest": 1,
+  "coins": 2
 }
 ```
+If you request the word "chest" in the automation prompt, the engine will automatically resolve the style class label to index `1`!
 
 ---
 
 ## 🧪 Step 4: Test the Model on Mac
 
-Use `scratch/infer_pixel_art.py` to run inference against any `.ptl` model directly on your Mac — no Android device needed. Outputs are saved as PNG tiles to `scratch/output/`.
+Use `scratch/infer_pixel_art.py` to run inference against any `.tflite` model directly on your Mac — no Android device needed. Outputs are saved as PNG tiles to `scratch/output/`.
 
 ### Install dependencies (one time)
 ```bash
-pip3 install torch torchvision pillow
+pip3 install tensorflow pillow numpy
 ```
 
 ### Basic usage
@@ -108,14 +108,14 @@ python3 scratch/infer_pixel_art.py
 python3 scratch/infer_pixel_art.py --prompt "ocean" --seed 42 --scale 6
 
 # 6 tiles stitched into one grid image
-python3 scratch/infer_pixel_art.py --count 6 --scale 4 --grid --prompt "forest"
+python3 scratch/infer_pixel_art.py --count 6 --scale 4 --grid --prompt "coin"
 ```
 
 ### All flags
 
 | Flag | Default | Description |
 |---|---|---|
-| `--model` | `app/src/main/assets/pixel_art_model.ptl` | Path to the `.ptl` model file |
+| `--model` | `app/src/main/assets/pixel_art_model.tflite` | Path to the `.tflite` model file |
 | `--prompt` | *(random class)* | Text keyword → class label (same mapping as the app) |
 | `--label` | — | Override the class index directly (0–9) |
 | `--count` | `1` | Number of tiles to generate |
@@ -155,6 +155,5 @@ The script uses the same keyword table as `MLImageEngine.kt`:
 
 ## ⚡ Performance Optimization Tips
 
-* **Apple Silicon (Macs)**: The training script automatically detects and leverages `mps` (Metal Performance Shaders), reducing training time for a 1,000-image dataset to under 15 minutes.
+* **Apple Silicon (Macs)**: The training script leverages GPU acceleration automatically on supported hardware through standard TensorFlow Metal plugins.
 * **Palette Variety**: Use the app's visual Color Picker to apply real-time harmonious blends. The model generates raw structural grayscale pixel art shapes, which are then mapped to your custom color arrays dynamically on-device in under 5 milliseconds!
-

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-infer_pixel_art.py — Run the trained pixel_art_model.ptl on Mac and save PNG tiles.
+infer_pixel_art.py — Run the trained pixel_art_model.tflite on Mac and save PNG tiles.
 
 Usage:
     python3 scratch/infer_pixel_art.py                          # random prompt, 1 image
@@ -9,10 +9,10 @@ Usage:
     python3 scratch/infer_pixel_art.py --scale 4                # 4× upscale (256×256)
     python3 scratch/infer_pixel_art.py --seed 42                # fixed seed
     python3 scratch/infer_pixel_art.py --grid                   # save all as a single grid image
-    python3 scratch/infer_pixel_art.py --model path/to/my.ptl   # custom model path
+    python3 scratch/infer_pixel_art.py --model path/to/my.tflite  # custom model path
 
 Dependencies (install once):
-    pip3 install torch torchvision pillow
+    pip3 install tensorflow pillow numpy
 """
 
 import argparse
@@ -21,105 +21,84 @@ import random
 import sys
 from pathlib import Path
 
-# ── Prompt → class label map (mirrors MLImageEngine.kt) ───────────────────────
-PROMPT_MAP = {
-    "coin":    0,
-    "map":     1,
-    "pirate":  2,
-    "sea":     2,
-    "ship":    2,
-    "forest":  0,
-    "green":   0,
-    "tree":    0,
-    "nature":  0,
-    "cyber":   1,
-    "neon":    1,
-    "synth":   1,
-    "future":  1,
-    "space":   2,
-    "star":    2,
-    "galaxy":  2,
-    "night":   2,
-    "castle":  3,
-    "dungeon": 3,
-    "stone":   3,
-    "retro":   3,
-    "desert":  4,
-    "sand":    4,
-    "gold":    4,
-    "sun":     4,
-    "ocean":   5,
-    "water":   5,
-    "snow":    6,
-    "ice":     6,
-    "winter":  6,
-    "cold":    6,
-    "lava":    7,
-    "fire":    7,
-    "magma":   7,
-    "red":     7,
-    "candy":   8,
-    "pink":    8,
-    "sweet":   8,
-    "cute":    8,
-}
-
-
-def prompt_to_label(prompt: str) -> int:
-    """Map a text prompt to a class label index (same logic as Kotlin mapPromptToClassLabel)."""
+def prompt_to_label(prompt: str, model_path: Path | None = None) -> int:
+    """Map a text prompt to a class label index using the model's companion JSON mapper."""
     p = prompt.lower()
-    for keyword, label in PROMPT_MAP.items():
-        if keyword in p:
-            return label
+    
+    if model_path is not None:
+        json_path = model_path.with_suffix('.json')
+        if json_path.exists():
+            try:
+                import json
+                with open(json_path, 'r') as f:
+                    mapping = json.load(f)
+                for keyword, label in mapping.items():
+                    if keyword.lower() in p:
+                        return int(label)
+            except Exception as e:
+                print(f"WARNING: Failed to parse companion JSON mapping: {e}")
+                
     return 0  # default fallback
 
 
 def load_model(model_path: str):
-    """Load a .ptl (PyTorch Lite / TorchScript) model for desktop inference."""
+    """Load a .tflite model for desktop inference."""
     try:
-        import torch
+        import tensorflow as tf
     except ImportError:
-        print("ERROR: PyTorch not installed. Run: pip3 install torch torchvision pillow")
+        print("ERROR: TensorFlow not installed. Run: pip3 install tensorflow pillow numpy")
         sys.exit(1)
 
     if not os.path.exists(model_path):
         print(f"ERROR: Model file not found: {model_path}")
         sys.exit(1)
 
-    print(f"Loading model from: {model_path}")
-    model = torch.jit.load(model_path, map_location="cpu")
-    model.eval()
+    print(f"Loading TensorFlow Lite interpreter from: {model_path}")
+    interpreter = tf.lite.Interpreter(model_path=str(model_path))
+    interpreter.allocate_tensors()
     print("Model loaded successfully.")
-    return model
+    return interpreter
 
 
-def generate_tile(model, label: int, seed: int | None = None):
-    """Run one forward pass and return a (3, 64, 64) float tensor in [-1, 1]."""
-    import torch
+def generate_tile(interpreter, label: int, seed: int | None = None):
+    """Run one forward pass and return a (64, 64, 4) float array in [-1, 1]."""
+    import numpy as np
 
     if seed is not None:
-        torch.manual_seed(seed)
+        np.random.seed(seed)
         random.seed(seed)
 
-    noise = torch.randn(1, 100)                              # z ~ N(0,1), shape [1, 100]
-    label_tensor = torch.tensor([label], dtype=torch.long)  # class label, shape [1]
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
 
-    with torch.no_grad():
-        output = model(noise, label_tensor)  # shape [1, 3, 64, 64]
+    # Find input indices dynamically by name
+    noise_idx = next(x['index'] for x in input_details if 'noise' in x['name'].lower())
+    label_idx = next(x['index'] for x in input_details if 'label' in x['name'].lower())
 
-    return output.squeeze(0)  # → [3, 64, 64]
+    # Create input tensors
+    noise_data = np.random.normal(size=(1, 100)).astype(np.float32)
+    label_data = np.array([[label]], dtype=np.int32)
+
+    # Set input tensors
+    interpreter.set_tensor(noise_idx, noise_data)
+    interpreter.set_tensor(label_idx, label_data)
+
+    # Invoke TFLite model execution
+    interpreter.invoke()
+
+    # Retrieve output [1, 64, 64, 4] and squeeze batch dimension
+    output_data = interpreter.get_tensor(output_details[0]['index'])
+    return output_data[0]  # → [64, 64, 4]
 
 
 def tensor_to_pil(tensor, scale: int = 1):
-    """Convert a (3, 64, 64) tensor in [-1, 1] to a PIL Image, optionally upscaled."""
+    """Convert a (64, 64, 4) float array in [-1, 1] to a PIL Image, optionally upscaled."""
     from PIL import Image
-    import torch
+    import numpy as np
 
     # Rescale tanh output [-1, 1] → [0, 255]
-    pixel_array = ((tensor + 1.0) * 127.5).clamp(0, 255).byte()
-    # Rearrange from CHW → HWC
-    img_np = pixel_array.permute(1, 2, 0).numpy()
-    img = Image.fromarray(img_np)
+    pixel_array = np.clip((tensor + 1.0) * 127.5, 0, 255).astype(np.uint8)
+    img = Image.fromarray(pixel_array, mode='RGBA')
 
     if scale > 1:
         new_size = (64 * scale, 64 * scale)
@@ -135,7 +114,7 @@ def save_grid(images, out_path: str, cols: int = 4):
 
     rows = math.ceil(len(images) / cols)
     w, h = images[0].size
-    grid = Image.new("RGB", (cols * w, rows * h), color=(20, 20, 20))
+    grid = Image.new("RGBA", (cols * w, rows * h), color=(0, 0, 0, 0))
 
     for idx, img in enumerate(images):
         col = idx % cols
@@ -148,14 +127,14 @@ def save_grid(images, out_path: str, cols: int = 4):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate pixel art tiles from a .ptl model on Mac.",
+        description="Generate pixel art tiles from a .tflite model on Mac.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
     parser.add_argument(
         "--model",
-        default="app/src/main/assets/pixel_art_model.ptl",
-        help="Path to the .ptl model file (default: app/src/main/assets/pixel_art_model.ptl)",
+        default="app/src/main/assets/pixel_art_model.tflite",
+        help="Path to the .tflite model file (default: app/src/main/assets/pixel_art_model.tflite)",
     )
     parser.add_argument(
         "--prompt",
@@ -210,7 +189,7 @@ def main():
         label = args.label
         prompt_display = f"label={label}"
     elif args.prompt:
-        label = prompt_to_label(args.prompt)
+        label = prompt_to_label(args.prompt, model_path)
         prompt_display = f"'{args.prompt}' → label={label}"
     else:
         label = random.randint(0, 9)
@@ -220,7 +199,7 @@ def main():
     print(f"Count : {args.count}  |  Scale: {args.scale}×  |  Output size: {64 * args.scale}×{64 * args.scale}px")
 
     # ── Load model ─────────────────────────────────────────────────────────────
-    model = load_model(str(model_path))
+    interpreter = load_model(str(model_path))
 
     # ── Generate ───────────────────────────────────────────────────────────────
     out_dir = (project_root / args.out_dir).resolve()
@@ -229,7 +208,7 @@ def main():
     images = []
     for i in range(args.count):
         seed = args.seed if args.seed is not None else random.randint(0, 2**31 - 1)
-        tensor = generate_tile(model, label=label, seed=seed)
+        tensor = generate_tile(interpreter, label=label, seed=seed)
         img = tensor_to_pil(tensor, scale=args.scale)
         images.append((img, seed))
         if not args.grid:

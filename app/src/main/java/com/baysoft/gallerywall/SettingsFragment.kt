@@ -52,6 +52,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
             Settings.PREF_CONSTRAINT_WIFI,
             Settings.PREF_CONSTRAINT_CHARGING,
             Settings.PREF_CONSTRAINT_IDLE,
+            Settings.PREF_CONSTRAINT_BATTERY_LOW,
         ).forEach { key ->
             findPreference<CheckBoxPreference>(key)?.setOnPreferenceChangeListener { _, _ ->
                 rescheduleIfEnabled()

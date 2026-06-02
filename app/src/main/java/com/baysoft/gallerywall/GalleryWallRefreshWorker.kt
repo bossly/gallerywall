@@ -24,6 +24,12 @@ class GalleryWallRefreshWorker(
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
         val settings = Settings(prefs)
 
+        // Check battery constraint: skip refresh if battery is low (<15%) or power saving is on
+        if (settings.constraintBatteryLow && isBatteryLowOrSaving(context)) {
+            Log.i(TAG, "Skipping wallpaper refresh: battery is low or power saving mode is active.")
+            return@withContext Result.success()
+        }
+
         val bitmap = GalleryWall.createWallpaperBitmap(context)
         if (bitmap == null) {
             Log.w(TAG, "No bitmap produced")
@@ -41,6 +47,27 @@ class GalleryWallRefreshWorker(
         }
 
         Result.success()
+    }
+
+    private fun isBatteryLowOrSaving(context: Context): Boolean {
+        // 1. Check system power saver mode
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+        if (powerManager?.isPowerSaveMode == true) {
+            return true
+        }
+
+        // 2. Check battery level percentage
+        val filter = android.content.IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED)
+        val batteryStatus = context.registerReceiver(null, filter)
+        val level = batteryStatus?.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1) ?: -1
+        val scale = batteryStatus?.getIntExtra(android.os.BatteryManager.EXTRA_SCALE, -1) ?: -1
+        if (level >= 0 && scale > 0) {
+            val percentage = (level / scale.toFloat()) * 100
+            if (percentage < 15.0f) {
+                return true
+            }
+        }
+        return false
     }
 
     companion object {

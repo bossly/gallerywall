@@ -53,6 +53,9 @@ android {
         buildConfig true
         compose true
     }
+    aaptOptions {
+        noCompress 'tflite'
+    }
 }
 
 dependencies {
@@ -87,9 +90,8 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-contrib:3.6.1'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
 
-    // PyTorch Mobile Lite
-    implementation 'org.pytorch:pytorch_android_lite:2.1.0'
-    implementation 'org.pytorch:pytorch_android_torchvision_lite:2.1.0'
+    // TensorFlow Lite
+    implementation 'org.tensorflow:tensorflow-lite:2.14.0'
 
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'androidx.test:core:1.6.1'
