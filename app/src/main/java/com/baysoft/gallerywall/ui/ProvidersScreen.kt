@@ -97,7 +97,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                 name = "Stable Diffusion v1.5 (Lite)",
                 description = "On-device Stable Diffusion v1.5 text-to-image model. Zipped package contains pre-converted sub-model components optimized for MediaPipe Tasks Vision.",
                 size = "1.2 GB",
-                downloadUrl = "https://huggingface.co/Qualcomm/Stable-Diffusion-v1.5/resolve/main/stable_diffusion_v1_5.zip"
+                downloadUrl = "https://storage.filebin.net/filebin/56680bed991bc2fe5785504d3bfaa4ce495b62f0535c7f3b72eb206ef09cfcf4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=GK352fd2505074fc9dde7fd2cb%2F20260609%2Fhel1-dc4%2Fs3%2Faws4_request&X-Amz-Date=20260609T140533Z&X-Amz-Expires=900&X-Amz-SignedHeaders=host&response-cache-control=max-age%3D900&response-content-disposition=inline%3B%20filename%3D%22stable_diffusion_v1_5.zip%22&response-content-type=application%2Fzip&x-id=GetObject&X-Amz-Signature=53bd4e24f364ed3f50a8e1f7f655a2782018840e964380470313ce5e244c7790"
             )
         )
         if (customModelName.isNotEmpty() && customModelUrl.isNotEmpty()) {

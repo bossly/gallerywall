@@ -29,7 +29,6 @@ object LocalAIProvider : WallpaperProvider {
         
         val promptTemplate = settings.automationPrompt
         val activeModelPath = settings.activeModelPath
-        val colors = WallpaperGenerator.parseColors(settings.generatedColorsHex)
         
         // 1. Resolve dynamic prompt placeholders
         val prompt = DynamicPromptParser.parse(context, promptTemplate)
@@ -53,7 +52,6 @@ object LocalAIProvider : WallpaperProvider {
         // 3. Generate on-device image using MediaPipe diffusion
         val rawTile = engine.generateTile(
             prompt = prompt,
-            colors = colors,
             steps = 20,
             seed = -1,
             supportTransparency = true

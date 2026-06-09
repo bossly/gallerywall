@@ -18,6 +18,7 @@ class MLImageEngine private constructor() {
 
     private var imageGenerator: ImageGenerator? = null
     private var loadedModelPath: String? = null
+    var lastLoadError: String? = null
 
     /**
      * Loads the MediaPipe Image Generator using the given local directory path.
@@ -26,13 +27,22 @@ class MLImageEngine private constructor() {
         val baseDir = File(modelPath)
         if (!baseDir.exists()) {
             Log.e(TAG, "Model directory does not exist at: $modelPath")
+            lastLoadError = "Model directory does not exist at: $modelPath"
             return false
         }
 
-        // Dynamically locate the nested directory containing the actual model files (e.g. unet.tflite)
+        // Dynamically locate the nested directory containing the actual model files (e.g. bpe_simple_vocab_16e6.txt)
         val resolvedDir = findModelDirectory(baseDir) ?: baseDir
         val resolvedPath = resolvedDir.absolutePath
         Log.i(TAG, "loadModel: Requested path = $modelPath | Resolved path = $resolvedPath")
+
+        // Validate that all critical model files are present before initializing the native runner
+        val validationError = validateModelFiles(resolvedDir)
+        if (validationError != null) {
+            Log.e(TAG, "Validation failed for model folder: $validationError")
+            lastLoadError = "Invalid model structure: $validationError. Ensure the model is a fully converted SD 1.5 directory (with all .bin weights and bpe_simple_vocab_16e6.txt)."
+            return false
+        }
 
         if (loadedModelPath == resolvedPath && imageGenerator != null) {
             return true
@@ -49,22 +59,28 @@ class MLImageEngine private constructor() {
             imageGenerator = ImageGenerator.createFromOptions(context, options)
             loadedModelPath = resolvedPath
             Log.i(TAG, "MediaPipe Image Generator successfully loaded from path: $resolvedPath")
+            lastLoadError = null
             true
         } catch (e: Exception) {
             Log.e(TAG, "Error loading MediaPipe Image Generator from: $resolvedPath", e)
+            val msg = e.toString()
+            lastLoadError = if (msg.contains("OpenCL") || msg.contains("clSetPerfHintQCOM") || msg.contains("CalculatorGraph::Run") || msg.contains("FAILED_PRECONDITION")) {
+                "Incompatible hardware: MediaPipe Stable Diffusion requires a physical Android GPU with OpenCL support. Emulators are not supported."
+            } else {
+                "Failed to initialize MediaPipe: ${e.localizedMessage}"
+            }
             false
         }
     }
 
     /**
-     * Recursively searches for the directory containing the core model weights (unet.tflite or text_encoder.tflite).
+     * Recursively searches for the directory containing the BPE vocabulary file (indicating the root model weights folder).
      */
     private fun findModelDirectory(dir: File): File? {
         if (!dir.exists() || !dir.isDirectory) return null
         
-        val unet = File(dir, "unet.tflite")
-        val textEncoder = File(dir, "text_encoder.tflite")
-        if (unet.exists() || textEncoder.exists()) {
+        val vocab = File(dir, "bpe_simple_vocab_16e6.txt")
+        if (vocab.exists()) {
             return dir
         }
         
@@ -75,6 +91,29 @@ class MLImageEngine private constructor() {
                 if (found != null) {
                     return found
                 }
+            }
+        }
+        return null
+    }
+
+    /**
+     * Validates that critical files exist and are non-empty to prevent native crashes.
+     */
+    private fun validateModelFiles(dir: File): String? {
+        val requiredFiles = listOf(
+            "bpe_simple_vocab_16e6.txt",
+            "cond_stage_model.transformer.text_model.embeddings.token_embedding.weight.bin",
+            "model.diffusion_model.input_blocks.0.0.weight.bin",
+            "first_stage_model.decoder.conv_out.weight.bin"
+        )
+        
+        for (filename in requiredFiles) {
+            val file = File(dir, filename)
+            if (!file.exists()) {
+                return "Missing required model file: $filename"
+            }
+            if (file.length() == 0L) {
+                return "Model file is empty: $filename"
             }
         }
         return null
@@ -101,12 +140,11 @@ class MLImageEngine private constructor() {
      * @param supportTransparency Whether to preserve generated alpha transparency or force fully opaque.
      */
     /**
-     * Generates a square seamless pixel-art tile bitmap based on a text prompt and active color configurations
+     * Generates a square seamless pixel-art tile bitmap based on a text prompt
      * using MediaPipe's iterative Image Generator API, reporting progress step by step.
      */
     fun generateTileProgressively(
         prompt: String,
-        colors: List<Int>,
         steps: Int = 20,
         seed: Int = -1,
         supportTransparency: Boolean = true,
@@ -157,42 +195,26 @@ class MLImageEngine private constructor() {
                 return null
             }
 
-            val width = rawBitmap.width
-            val height = rawBitmap.height
-            val pixelCount = height * width
-            val pixels = IntArray(pixelCount)
-            rawBitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+            if (supportTransparency) {
+                generatedTile = rawBitmap
+            } else {
+                // Force alpha channel to opaque (255) if transparency is disabled
+                val width = rawBitmap.width
+                val height = rawBitmap.height
+                val pixelCount = height * width
+                val pixels = IntArray(pixelCount)
+                rawBitmap.getPixels(pixels, 0, width, 0, 0, width, height)
 
-            for (i in 0 until pixelCount) {
-                val color = pixels[i]
-                val r = Color.red(color)
-                val g = Color.green(color)
-                val b = Color.blue(color)
-                val a = if (supportTransparency) Color.alpha(color) else 255
-
-                if (colors.size > 1) {
-                    val grayscale = (0.299f * r + 0.587f * g + 0.114f * b)
-                    val norm = grayscale / 255.0f
-
-                    val position = norm * (colors.size - 1)
-                    val idx1 = position.toInt().coerceIn(0, colors.size - 2)
-                    val idx2 = (idx1 + 1).coerceIn(0, colors.size - 1)
-                    val weight = position - idx1
-
-                    val c1 = colors[idx1]
-                    val c2 = colors[idx2]
-
-                    val rOut = (Color.red(c1) * (1f - weight) + Color.red(c2) * weight).toInt().coerceIn(0, 255)
-                    val gOut = (Color.green(c1) * (1f - weight) + Color.green(c2) * weight).toInt().coerceIn(0, 255)
-                    val bOut = (Color.blue(c1) * (1f - weight) + Color.blue(c2) * weight).toInt().coerceIn(0, 255)
-
-                    pixels[i] = (a shl 24) or (rOut shl 16) or (gOut shl 8) or bOut
-                } else {
-                    pixels[i] = (a shl 24) or (r shl 16) or (g shl 8) or b
+                for (i in 0 until pixelCount) {
+                    val color = pixels[i]
+                    val r = Color.red(color)
+                    val g = Color.green(color)
+                    val b = Color.blue(color)
+                    pixels[i] = (255 shl 24) or (r shl 16) or (g shl 8) or b
                 }
-            }
 
-            generatedTile = Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
+                generatedTile = Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
+            }
 
         } catch (e: Exception) {
             Log.e(TAG, "MediaPipe Image Generator generation failed", e)
@@ -209,9 +231,12 @@ class MLImageEngine private constructor() {
         return generatedTile
     }
 
+    /**
+     * Generates a square seamless pixel-art tile bitmap based on a text prompt
+     * using MediaPipe's synchronous Image Generator API.
+     */
     fun generateTile(
         prompt: String,
-        colors: List<Int>,
         size: Int = 32,
         steps: Int = 20,
         seed: Int = -1,
@@ -246,45 +271,26 @@ class MLImageEngine private constructor() {
                 return null
             }
 
-            val width = rawBitmap.width
-            val height = rawBitmap.height
-            val pixelCount = height * width
-            val pixels = IntArray(pixelCount)
-            rawBitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+            if (supportTransparency) {
+                generatedTile = rawBitmap
+            } else {
+                // Force alpha channel to opaque (255) if transparency is disabled
+                val width = rawBitmap.width
+                val height = rawBitmap.height
+                val pixelCount = height * width
+                val pixels = IntArray(pixelCount)
+                rawBitmap.getPixels(pixels, 0, width, 0, 0, width, height)
 
-            for (i in 0 until pixelCount) {
-                val color = pixels[i]
-                val r = Color.red(color)
-                val g = Color.green(color)
-                val b = Color.blue(color)
-                val a = if (supportTransparency) Color.alpha(color) else 255
-
-                if (colors.size > 1) {
-                    // Apply visual harmony color-mapping: convert pixel to grayscale intensity
-                    val grayscale = (0.299f * r + 0.587f * g + 0.114f * b)
-                    val norm = grayscale / 255.0f
-
-                    // Interpolate across custom colors selected in the app
-                    val position = norm * (colors.size - 1)
-                    val idx1 = position.toInt().coerceIn(0, colors.size - 2)
-                    val idx2 = (idx1 + 1).coerceIn(0, colors.size - 1)
-                    val weight = position - idx1
-
-                    val c1 = colors[idx1]
-                    val c2 = colors[idx2]
-
-                    val rOut = (Color.red(c1) * (1f - weight) + Color.red(c2) * weight).toInt().coerceIn(0, 255)
-                    val gOut = (Color.green(c1) * (1f - weight) + Color.green(c2) * weight).toInt().coerceIn(0, 255)
-                    val bOut = (Color.blue(c1) * (1f - weight) + Color.blue(c2) * weight).toInt().coerceIn(0, 255)
-
-                    pixels[i] = (a shl 24) or (rOut shl 16) or (gOut shl 8) or bOut
-                } else {
-                    pixels[i] = (a shl 24) or (r shl 16) or (g shl 8) or b
+                for (i in 0 until pixelCount) {
+                    val color = pixels[i]
+                    val r = Color.red(color)
+                    val g = Color.green(color)
+                    val b = Color.blue(color)
+                    pixels[i] = (255 shl 24) or (r shl 16) or (g shl 8) or b
                 }
-            }
 
-            // Build dynamic sized bitmap with visual harmony palette applied
-            generatedTile = Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
+                generatedTile = Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
+            }
 
         } catch (e: Exception) {
             Log.e(TAG, "MediaPipe Image Generator generation failed", e)

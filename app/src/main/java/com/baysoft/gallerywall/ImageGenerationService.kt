@@ -97,20 +97,22 @@ class ImageGenerationService : Service() {
                 }
 
                 if (!modelLoaded) {
-                    throw IllegalStateException("Failed to load on-device Stable Diffusion model. Please download the model package first.")
+                    val errorDetail = engine.lastLoadError ?: "Please download the model package first."
+                    throw IllegalStateException("Failed to load Stable Diffusion model. $errorDetail")
                 }
 
                 updateNotification("Generating wallpaper...")
-                val colors = WallpaperGenerator.parseColors(colorsHex)
+                
+                val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+                val settings = Settings(prefs)
 
                 // 2. Perform progressive generation on Dispatchers.Default
                 val rawTile = withContext(Dispatchers.Default) {
                     engine.generateTileProgressively(
                         prompt = prompt,
-                        colors = colors,
                         steps = 20,
                         seed = -1,
-                        supportTransparency = true
+                        supportTransparency = false
                     ) { step, total ->
                         val progress = step.toFloat() / total.toFloat()
                         _state.value = GenerationState.Generating(progress, step, total)
@@ -123,8 +125,6 @@ class ImageGenerationService : Service() {
                 }
 
                 // 3. Upscale & repeat tile to wallpaper size
-                val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-                val settings = Settings(prefs)
                 val scaleFactor = settings.scaleFactor
                 val scaledSize = rawTile.width * scaleFactor
                 val generatedTile = if (scaleFactor > 1) {
