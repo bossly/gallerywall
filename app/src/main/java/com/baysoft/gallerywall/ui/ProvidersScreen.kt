@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
 import com.baysoft.gallerywall.Settings
+import com.baysoft.gallerywall.ml.LocalMLEngine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -50,6 +51,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
     
     var activeModelPath by remember { mutableStateOf(prefs.getString(Settings.PREF_ACTIVE_MODEL_PATH, null)) }
     var selectedScale by remember { mutableStateOf(prefs.getInt(Settings.PREF_SCALE_FACTOR, Settings.DEFAULT_SCALE_FACTOR)) }
+    val downloadingStates = remember { mutableStateMapOf<String, String>() }
 
     val baseDir = remember { context.getExternalFilesDir("models") ?: File(context.filesDir, "models") }
     val getModelFile = { id: String ->
@@ -66,22 +68,22 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                 name = "Stable Diffusion v1.5 (Lite)",
                 description = "On-device Stable Diffusion v1.5 text-to-image model. Zipped package contains pre-converted sub-model components optimized for MediaPipe Tasks Vision.",
                 size = "1.2 GB",
-                downloadUrl = "https://storage.filebin.net/filebin/56680bed991bc2fe5785504d3bfaa4ce495b62f0535c7f3b72eb206ef09cfcf4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=GK352fd2505074fc9dde7fd2cb%2F20260609%2Fhel1-dc4%2Fs3%2Faws4_request&X-Amz-Date=20260609T140533Z&X-Amz-Expires=900&X-Amz-SignedHeaders=host&response-cache-control=max-age%3D900&response-content-disposition=inline%3B%20filename%3D%22stable_diffusion_v1_5.zip%22&response-content-type=application%2Fzip&x-id=GetObject&X-Amz-Signature=53bd4e24f364ed3f50a8e1f7f655a2782018840e964380470313ce5e244c7790"
+                downloadUrl = "https://drive.usercontent.google.com/download?id=1b2o6jPS8qod08MRv4SmbnWoeq_TRMvA-&export=download&authuser=0&confirm=t&uuid=1bfe2f6f-4af2-4324-a8ca-5f43d22346d2&at=AAINaIL6q-ilMini4cWl9Cgcwf05%3A1781033628997"
             ),
-            GgufModel(
-                id = "bk_sdm_small",
-                name = "BK-SDM-Small (0.49B-param U-Net)",
-                description = "On-device BK-SDM-Small text-to-image model. Zipped package contains pre-converted sub-model components optimized for MediaPipe Tasks Vision.",
-                size = "1.41 GB",
-                downloadUrl = "https://huggingface.co/nota-ai/bk-sdm-small/resolve/main/bk-sdm-small.zip"
-            ),
-            GgufModel(
-                id = "bk_sdm_base",
-                name = "BK-SDM-Base (0.58B-param U-Net)",
-                description = "On-device BK-SDM-Base text-to-image model. Zipped package contains pre-converted sub-model components optimized for MediaPipe Tasks Vision.",
-                size = "1.56 GB",
-                downloadUrl = "https://huggingface.co/nota-ai/bk-sdm-base/resolve/main/bk-sdm-base.zip"
-            )
+//            GgufModel(
+//                id = "bk_sdm_small",
+//                name = "BK-SDM-Small (0.49B-param U-Net)",
+//                description = "On-device BK-SDM-Small text-to-image model. Zipped package contains pre-converted sub-model components optimized for MediaPipe Tasks Vision.",
+//                size = "1.41 GB",
+//                downloadUrl = "https://huggingface.co/nota-ai/bk-sdm-small/resolve/main/bk-sdm-small.zip"
+//            ),
+//            GgufModel(
+//                id = "bk_sdm_base",
+//                name = "BK-SDM-Base (0.58B-param U-Net)",
+//                description = "On-device BK-SDM-Base text-to-image model. Zipped package contains pre-converted sub-model components optimized for MediaPipe Tasks Vision.",
+//                size = "1.56 GB",
+//                downloadUrl = "https://huggingface.co/nota-ai/bk-sdm-base/resolve/main/bk-sdm-base.zip"
+//            )
         )
 
         val list = builtIn.toMutableList()
@@ -295,12 +297,45 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
-                                    Text(
-                                        text = "Size: $displaySize",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(
+                                            text = "Size: $displaySize",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        if (isCurrentlyActive) {
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = MaterialTheme.colorScheme.primaryContainer
+                                            ) {
+                                                Text(
+                                                    text = "Active & Loaded",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        } else if (exists) {
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = MaterialTheme.colorScheme.secondaryContainer
+                                            ) {
+                                                Text(
+                                                    text = "Downloaded",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
 
                                 if (exists) {
@@ -316,6 +351,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                             onClick = {
                                                 file.deleteRecursively()
                                                 if (isCurrentlyActive) {
+                                                    LocalMLEngine.getInstance().unloadModel()
                                                     activeModelPath = null
                                                     prefs.edit().remove(Settings.PREF_ACTIVE_MODEL_PATH).apply()
                                                 }
@@ -331,119 +367,238 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                         }
                                     }
                                 } else {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        if (model.downloadUrl.isNotEmpty()) {
-                                            Button(
-                                                onClick = {
-                                                    scope.launch {
-                                                        try {
-                                                            Log.d("ProvidersScreen", "Download button clicked for model: ${model.name} (${model.id})")
-                                                            val urlFilename = try {
-                                                                Uri.parse(model.downloadUrl).lastPathSegment ?: "${model.id}.zip"
-                                                            } catch (e: Exception) {
-                                                                "${model.id}.zip"
-                                                            }
-                                                            
-                                                            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-                                                            val possibleDirs = listOf(
-                                                                downloadsDir,
-                                                                File("/sdcard/Download"),
-                                                                File("/storage/emulated/0/Download")
-                                                            )
-                                                            
-                                                            var localZip: File? = null
-                                                            for (dir in possibleDirs) {
-                                                                val file = File(dir, urlFilename)
-                                                                if (file.exists() && file.canRead()) {
-                                                                    localZip = file
-                                                                    break
-                                                                }
-                                                                val fileAlt = File(dir, "${model.id}.zip")
-                                                                if (fileAlt.exists() && fileAlt.canRead()) {
-                                                                    localZip = fileAlt
-                                                                    break
-                                                                }
-                                                            }
-
-                                                            if (localZip != null) {
-                                                                Log.d("ProvidersScreen", "Found local zip at: ${localZip.absolutePath}. Unzipping directly...")
-                                                                Toast.makeText(context, "Found local ZIP in Downloads! Loading...", Toast.LENGTH_LONG).show()
-                                                                
-                                                                val baseDir = context.getExternalFilesDir("models") ?: File(context.filesDir, "models")
-                                                                
-                                                                withContext(Dispatchers.IO) {
-                                                                    baseDir.mkdirs()
-                                                                    val targetDir = getModelFile(model.id)
-                                                                    if (targetDir.exists()) {
-                                                                        targetDir.deleteRecursively()
-                                                                    }
-                                                                    targetDir.mkdirs()
-                                                                    localZip.inputStream().use { input ->
-                                                                        unzip(input, targetDir)
-                                                                    }
-                                                                }
-                                                                Toast.makeText(context, "Loaded model successfully from local ZIP!", Toast.LENGTH_SHORT).show()
-                                                                refreshTrigger++
-                                                                return@launch
-                                                            }
-                                                            
-                                                            val baseDir = context.getExternalFilesDir("models") ?: File(context.filesDir, "models")
-                                                            val zipFile = File(baseDir, "${model.id}.zip")
-                                                            if (zipFile.exists()) {
-                                                                zipFile.delete()
-                                                            }
-                                                            baseDir.mkdirs()
-
-                                                            Log.d("ProvidersScreen", "Target local storage path: ${zipFile.absolutePath}")
-                                                            val request = DownloadManager.Request(Uri.parse(model.downloadUrl))
-                                                                .setTitle(model.name)
-                                                                .setDescription("Downloading on-device Stable Diffusion model package")
-                                                                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                                                                .setDestinationUri(Uri.fromFile(zipFile))
-                                                                .setAllowedOverMetered(true)
-                                                                .setAllowedOverRoaming(false)
-
-                                                            val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-                                                            dm.enqueue(request)
-
-                                                            Toast.makeText(context, "Started download in background. Monitor via system tray progress.", Toast.LENGTH_LONG).show()
-                                                            
-                                                            scope.launch {
-                                                                while (!zipFile.exists() || zipFile.length() == 0L) {
-                                                                    kotlinx.coroutines.delay(2000)
-                                                                }
-                                                                
-                                                                withContext(Dispatchers.IO) {
-                                                                    try {
-                                                                        val targetDir = getModelFile(model.id)
-                                                                        if (targetDir.exists()) {
-                                                                            targetDir.deleteRecursively()
-                                                                        }
-                                                                        targetDir.mkdirs()
-                                                                        zipFile.inputStream().use { input ->
-                                                                            unzip(input, targetDir)
-                                                                        }
-                                                                    } catch (e: Exception) {
-                                                                        Log.e("ProvidersScreen", "Error unzipping model", e)
-                                                                    } finally {
-                                                                        zipFile.delete()
-                                                                    }
-                                                                }
-                                                                refreshTrigger++
-                                                            }
-                                                        } catch (e: Exception) {
-                                                            Log.e("ProvidersScreen", "Exception caught during download initiation flow for model '${model.id}'", e)
-                                                            Toast.makeText(context, "Failed to download model: ${e.message}", Toast.LENGTH_SHORT).show()
-                                                        }
+                                    val currentStatus = downloadingStates[model.id]
+                                    if (currentStatus != null) {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            if (currentStatus.startsWith("Error")) {
+                                                Column(horizontalAlignment = Alignment.End) {
+                                                    Text(
+                                                        text = currentStatus,
+                                                        color = MaterialTheme.colorScheme.error,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Button(
+                                                        onClick = {
+                                                            downloadingStates.remove(model.id)
+                                                        },
+                                                        colors = ButtonDefaults.buttonColors(
+                                                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                                                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                                        )
+                                                    ) {
+                                                        Text("Retry")
                                                     }
                                                 }
-                                            ) {
-                                                Icon(Icons.Default.Add, contentDescription = "Download")
+                                            } else {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(20.dp),
+                                                    strokeWidth = 2.dp,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
                                                 Spacer(modifier = Modifier.width(4.dp))
-                                                Text("Download")
+                                                Text(
+                                                    text = currentStatus,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                            }
+                                        }
+                                    } else {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            if (model.downloadUrl.isNotEmpty()) {
+                                                Button(
+                                                    onClick = {
+                                                        scope.launch {
+                                                            try {
+                                                                Log.d("ProvidersScreen", "Download button clicked for model: ${model.name} (${model.id})")
+                                                                val urlFilename = try {
+                                                                    Uri.parse(model.downloadUrl).lastPathSegment ?: "${model.id}.zip"
+                                                                } catch (e: Exception) {
+                                                                    "${model.id}.zip"
+                                                                }
+                                                                
+                                                                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                                                                val possibleDirs = listOf(
+                                                                    downloadsDir,
+                                                                    File("/sdcard/Download"),
+                                                                    File("/storage/emulated/0/Download")
+                                                                )
+                                                                
+                                                                var localZip: File? = null
+                                                                for (dir in possibleDirs) {
+                                                                    val file = File(dir, urlFilename)
+                                                                    if (file.exists() && file.canRead()) {
+                                                                        localZip = file
+                                                                        break
+                                                                    }
+                                                                    val fileAlt = File(dir, "${model.id}.zip")
+                                                                    if (fileAlt.exists() && fileAlt.canRead()) {
+                                                                        localZip = fileAlt
+                                                                        break
+                                                                    }
+                                                                }
+
+                                                                if (localZip != null) {
+                                                                    Log.d("ProvidersScreen", "Found local zip at: ${localZip.absolutePath}. Unzipping directly...")
+                                                                    downloadingStates[model.id] = "Extracting..."
+                                                                    
+                                                                    val baseDir = context.getExternalFilesDir("models") ?: File(context.filesDir, "models")
+                                                                    
+                                                                    val unzipSuccess = withContext(Dispatchers.IO) {
+                                                                        try {
+                                                                            baseDir.mkdirs()
+                                                                            val targetDir = getModelFile(model.id)
+                                                                            if (targetDir.exists()) {
+                                                                                targetDir.deleteRecursively()
+                                                                            }
+                                                                            targetDir.mkdirs()
+                                                                            localZip.inputStream().use { input ->
+                                                                                unzip(input, targetDir)
+                                                                            }
+                                                                            true
+                                                                        } catch (e: Exception) {
+                                                                            Log.e("ProvidersScreen", "Error unzipping local model ZIP", e)
+                                                                            false
+                                                                        }
+                                                                    }
+                                                                    if (unzipSuccess) {
+                                                                        downloadingStates.remove(model.id)
+                                                                        Toast.makeText(context, "Loaded model successfully from local ZIP!", Toast.LENGTH_SHORT).show()
+                                                                    } else {
+                                                                        Log.e("ProvidersScreen", "Failed to load/extract model from local ZIP for model ${model.id}")
+                                                                        downloadingStates[model.id] = "Error: Extraction failed"
+                                                                        Toast.makeText(context, "Failed to load model from local ZIP", Toast.LENGTH_LONG).show()
+                                                                    }
+                                                                    refreshTrigger++
+                                                                    return@launch
+                                                                }
+                                                                
+                                                                val baseDir = context.getExternalFilesDir("models") ?: File(context.filesDir, "models")
+                                                                val zipFile = File(baseDir, "${model.id}.zip")
+                                                                if (zipFile.exists()) {
+                                                                    zipFile.delete()
+                                                                }
+                                                                baseDir.mkdirs()
+
+                                                                Log.d("ProvidersScreen", "Target local storage path: ${zipFile.absolutePath}")
+                                                                val request = DownloadManager.Request(Uri.parse(model.downloadUrl))
+                                                                    .setTitle(model.name)
+                                                                    .setDescription("Downloading on-device Stable Diffusion model package")
+                                                                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                                                                    .setDestinationUri(Uri.fromFile(zipFile))
+                                                                    .setAllowedOverMetered(true)
+                                                                    .setAllowedOverRoaming(false)
+
+                                                                val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                                                                val downloadId = dm.enqueue(request)
+
+                                                                downloadingStates[model.id] = "Downloading..."
+                                                                Toast.makeText(context, "Started download in background. Monitor via system tray progress.", Toast.LENGTH_LONG).show()
+                                                                
+                                                                scope.launch {
+                                                                    var isDone = false
+                                                                    var isError = false
+                                                                    var errorMessage: String? = null
+                                                                    
+                                                                    while (!isDone && !isError) {
+                                                                        kotlinx.coroutines.delay(1000)
+                                                                        val q = DownloadManager.Query().setFilterById(downloadId)
+                                                                        val c = dm.query(q)
+                                                                        if (c != null && c.moveToFirst()) {
+                                                                            val statusCol = c.getColumnIndex(DownloadManager.COLUMN_STATUS)
+                                                                            if (statusCol != -1) {
+                                                                                val status = c.getInt(statusCol)
+                                                                                when (status) {
+                                                                                    DownloadManager.STATUS_SUCCESSFUL -> {
+                                                                                        isDone = true
+                                                                                    }
+                                                                                    DownloadManager.STATUS_FAILED -> {
+                                                                                        isError = true
+                                                                                        val reasonCol = c.getColumnIndex(DownloadManager.COLUMN_REASON)
+                                                                                        val reason = if (reasonCol != -1) c.getInt(reasonCol) else -1
+                                                                                        errorMessage = "Download failed: status code $reason"
+                                                                                    }
+                                                                                    DownloadManager.STATUS_PAUSED -> {
+                                                                                        // still waiting/paused
+                                                                                    }
+                                                                                    DownloadManager.STATUS_RUNNING -> {
+                                                                                        val totalCol = c.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
+                                                                                        val currentCol = c.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
+                                                                                        if (totalCol != -1 && currentCol != -1) {
+                                                                                            val total = c.getLong(totalCol)
+                                                                                            val current = c.getLong(currentCol)
+                                                                                            if (total > 0) {
+                                                                                                val percent = (current * 100 / total).toInt()
+                                                                                                downloadingStates[model.id] = "Downloading ($percent%)"
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                            c.close()
+                                                                        } else {
+                                                                            isError = true
+                                                                            errorMessage = "Download cancelled or failed"
+                                                                        }
+                                                                    }
+                                                                    
+                                                                    if (isError) {
+                                                                        Log.e("ProvidersScreen", "Download failed for model ${model.id}: $errorMessage")
+                                                                        downloadingStates[model.id] = "Error: $errorMessage"
+                                                                        Toast.makeText(context, errorMessage ?: "Download failed", Toast.LENGTH_LONG).show()
+                                                                    } else {
+                                                                        downloadingStates[model.id] = "Extracting..."
+                                                                        val unzipSuccess = withContext(Dispatchers.IO) {
+                                                                            try {
+                                                                                val targetDir = getModelFile(model.id)
+                                                                                if (targetDir.exists()) {
+                                                                                    targetDir.deleteRecursively()
+                                                                                    }
+                                                                                targetDir.mkdirs()
+                                                                                zipFile.inputStream().use { input ->
+                                                                                    unzip(input, targetDir)
+                                                                                }
+                                                                                true
+                                                                            } catch (e: Exception) {
+                                                                                Log.e("ProvidersScreen", "Error unzipping model for model ${model.id}", e)
+                                                                                errorMessage = "Extraction failed: ${e.message}"
+                                                                                false
+                                                                            } finally {
+                                                                                zipFile.delete()
+                                                                            }
+                                                                        }
+                                                                        
+                                                                        if (unzipSuccess) {
+                                                                            downloadingStates.remove(model.id)
+                                                                            Toast.makeText(context, "Loaded model successfully!", Toast.LENGTH_SHORT).show()
+                                                                        } else {
+                                                                            Log.e("ProvidersScreen", "Extraction failed for model ${model.id}: $errorMessage")
+                                                                            downloadingStates[model.id] = "Error: $errorMessage"
+                                                                            Toast.makeText(context, errorMessage ?: "Extraction failed", Toast.LENGTH_LONG).show()
+                                                                        }
+                                                                    }
+                                                                    refreshTrigger++
+                                                                }
+                                                            } catch (e: Exception) {
+                                                                Log.e("ProvidersScreen", "Exception caught during download initiation flow for model '${model.id}'", e)
+                                                                downloadingStates[model.id] = "Error: ${e.localizedMessage}"
+                                                                Toast.makeText(context, "Failed to download model: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                            }
+                                                        }
+                                                    }
+                                                ) {
+                                                    Icon(Icons.Default.Add, contentDescription = "Download")
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text("Download")
+                                                }
                                             }
                                         }
                                     }

@@ -74,13 +74,13 @@ class ImageGenerationService : Service() {
         val prompt = intent?.getStringExtra(EXTRA_PROMPT) ?: ""
         val modelPath = intent?.getStringExtra(EXTRA_MODEL_PATH) ?: ""
 
-        startForeground(NOTIFICATION_ID, buildNotification("Initializing service..."))
+        startForeground(NOTIFICATION_ID, buildNotification("Initializing service...", -2))
 
         activeJob?.cancel()
         activeJob = serviceScope.launch {
             try {
                 _state.value = GenerationState.LoadingModel
-                updateNotification("Loading AI model directory...")
+                updateNotification("Loading AI model directory...", -2)
 
                 val context = applicationContext
                 val engine = LocalMLEngine.getInstance()
@@ -100,7 +100,7 @@ class ImageGenerationService : Service() {
                     throw IllegalStateException("Failed to load Stable Diffusion model. $errorDetail")
                 }
 
-                updateNotification("Generating wallpaper...")
+                updateNotification("Generating wallpaper...", -2)
                 
                 val prefs = PreferenceManager.getDefaultSharedPreferences(context)
                 val settings = Settings(prefs)
@@ -115,7 +115,7 @@ class ImageGenerationService : Service() {
                     ) { step, total ->
                         val progress = step.toFloat() / total.toFloat()
                         _state.value = GenerationState.Generating(progress, step, total)
-                        updateNotification("Generating image: step $step/$total")
+                        updateNotification("Generating image: step $step/$total", step, total)
                     }
                 }
 
@@ -174,25 +174,32 @@ class ImageGenerationService : Service() {
         serviceScope.cancel()
     }
 
-    private fun buildNotification(contentText: String): Notification {
+    private fun buildNotification(contentText: String, progress: Int = -1, max: Int = -1): Notification {
         val pendingIntent = PendingIntent.getActivity(
             this, 0,
             Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE
         )
 
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("GalleryWall On-Device AI")
             .setContentText(contentText)
             .setSmallIcon(R.drawable.icon_notification)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
-            .build()
+
+        if (max > 0 && progress >= 0) {
+            builder.setProgress(max, progress, false)
+        } else if (progress == -2) {
+            builder.setProgress(0, 0, true)
+        }
+
+        return builder.build()
     }
 
-    private fun updateNotification(text: String) {
+    private fun updateNotification(text: String, progress: Int = -1, max: Int = -1) {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(NOTIFICATION_ID, buildNotification(text))
+        notificationManager.notify(NOTIFICATION_ID, buildNotification(text, progress, max))
     }
 
     private fun showErrorNotification(message: String) {

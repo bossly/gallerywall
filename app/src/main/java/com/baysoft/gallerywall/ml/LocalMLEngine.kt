@@ -296,6 +296,22 @@ class LocalMLEngine private constructor() {
         return generatedTile
     }
 
+    /**
+     * Unloads the current model and releases all native resources.
+     */
+    fun unloadModel() {
+        synchronized(this) {
+            try {
+                imageGenerator?.close()
+                Log.i(TAG, "MediaPipe Image Generator successfully closed/unloaded.")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error closing MediaPipe Image Generator", e)
+            }
+            imageGenerator = null
+            loadedModelPath = null
+        }
+    }
+
     companion object {
         private const val TAG = "LocalMLEngine"
 
