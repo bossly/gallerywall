@@ -16,7 +16,7 @@ import androidx.preference.PreferenceManager
 import com.baysoft.gallerywall.data.WallpaperDatabase
 import com.baysoft.gallerywall.data.WallpaperRepository
 import com.baysoft.gallerywall.ml.DynamicPromptParser
-import com.baysoft.gallerywall.ml.MLImageEngine
+import com.baysoft.gallerywall.ml.LocalMLEngine
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -73,7 +73,6 @@ class ImageGenerationService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val prompt = intent?.getStringExtra(EXTRA_PROMPT) ?: ""
         val modelPath = intent?.getStringExtra(EXTRA_MODEL_PATH) ?: ""
-        val colorsHex = intent?.getStringExtra(EXTRA_COLORS_HEX) ?: Settings.DEFAULT_GENERATED_COLORS
 
         startForeground(NOTIFICATION_ID, buildNotification("Initializing service..."))
 
@@ -84,7 +83,7 @@ class ImageGenerationService : Service() {
                 updateNotification("Loading AI model directory...")
 
                 val context = applicationContext
-                val engine = MLImageEngine.getInstance()
+                val engine = LocalMLEngine.getInstance()
 
                 // 1. Load the model on background Dispatchers.Default
                 val modelLoaded = withContext(Dispatchers.Default) {

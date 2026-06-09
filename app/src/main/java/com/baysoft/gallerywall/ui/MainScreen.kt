@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 
 enum class GalleryTab(val title: String, val icon: ImageVector) {
-    RECENTS("Recents", Icons.Default.Home),
+    GALLERY("Gallery", Icons.Default.Home),
     PROVIDERS("Providers", Icons.Default.List),
     AUTOMATION("Automation", Icons.Default.Settings)
 }
@@ -22,7 +22,7 @@ enum class GalleryTab(val title: String, val icon: ImageVector) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {
-    var selectedTab by remember { mutableStateOf(GalleryTab.RECENTS) }
+    var selectedTab by remember { mutableStateOf(GalleryTab.GALLERY) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -52,7 +52,7 @@ fun MainScreen() {
                 label = "ScreenTransition"
             ) { tab ->
                 when (tab) {
-                    GalleryTab.RECENTS -> RecentsScreen()
+                    GalleryTab.GALLERY -> GalleryScreen()
                     GalleryTab.PROVIDERS -> ProvidersScreen()
                     GalleryTab.AUTOMATION -> AutomationScreen()
                 }

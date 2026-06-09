@@ -14,7 +14,7 @@ import java.io.File
  * Loads a compatible Stable Diffusion v1.5 model directory to generate images
  * locally from text prompts.
  */
-class MLImageEngine private constructor() {
+class LocalMLEngine private constructor() {
 
     private var imageGenerator: ImageGenerator? = null
     private var loadedModelPath: String? = null
@@ -128,17 +128,6 @@ class MLImageEngine private constructor() {
         return false
     }
 
-    /**
-     * Generates a square seamless pixel-art tile bitmap based on a text prompt and active color configurations
-     * using MediaPipe's synchronous Image Generator API.
-     * @param prompt The descriptive text prompt for the texture.
-     * @param colors The list of user-configured colors to map or tint the sprite palette.
-     * @param size Unused.
-     * @param steps The number of diffusion sampling steps (iterations).
-     * @param seed Random seed for reproducibility. Set to -1 for random.
-     * @param circular Unused.
-     * @param supportTransparency Whether to preserve generated alpha transparency or force fully opaque.
-     */
     /**
      * Generates a square seamless pixel-art tile bitmap based on a text prompt
      * using MediaPipe's iterative Image Generator API, reporting progress step by step.
@@ -308,14 +297,14 @@ class MLImageEngine private constructor() {
     }
 
     companion object {
-        private const val TAG = "MLImageEngine"
+        private const val TAG = "LocalMLEngine"
 
         @Volatile
-        private var instance: MLImageEngine? = null
+        private var instance: LocalMLEngine? = null
 
-        fun getInstance(): MLImageEngine {
+        fun getInstance(): LocalMLEngine {
             return instance ?: synchronized(this) {
-                instance ?: MLImageEngine().also { instance = it }
+                instance ?: LocalMLEngine().also { instance = it }
             }
         }
     }

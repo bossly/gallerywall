@@ -8,7 +8,7 @@ import com.baysoft.gallerywall.R
 import com.baysoft.gallerywall.Settings
 import com.baysoft.gallerywall.WallpaperGenerator
 import com.baysoft.gallerywall.ml.DynamicPromptParser
-import com.baysoft.gallerywall.ml.MLImageEngine
+import com.baysoft.gallerywall.ml.LocalMLEngine
 
 /**
  * On-device local AI wallpaper generator. Uses stable-diffusion.cpp to synthesize a seamless
@@ -23,7 +23,7 @@ object LocalAIProvider : WallpaperProvider {
     override val titleRes: Int = R.string.provider_ai_title
     override val summaryRes: Int = R.string.provider_ai_summary
 
-    override fun generateBitmap(context: Context): Bitmap {
+    override fun generateBitmap(context: Context, onStateUpdate: (ProviderState) -> Unit): Bitmap {
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
         val settings = Settings(prefs)
         
@@ -35,9 +35,10 @@ object LocalAIProvider : WallpaperProvider {
         Log.i(TAG, "Generating AI wallpaper. Raw: '$promptTemplate' -> Resolved: '$prompt'")
         
         // 2. Load MediaPipe Image Generator model directory
-        val engine = MLImageEngine.getInstance()
+        val engine = LocalMLEngine.getInstance()
         var modelLoaded = false
         
+        onStateUpdate(DefaultProviderState(progress = 0.0f, message = "Loading AI model directory..."))
         if (!activeModelPath.isNullOrEmpty()) {
             val modelDir = java.io.File(activeModelPath)
             if (modelDir.exists() && modelDir.isDirectory) {
@@ -46,16 +47,33 @@ object LocalAIProvider : WallpaperProvider {
         }
         
         if (!modelLoaded) {
-            throw IllegalStateException("MediaPipe on-device AI generation failed: No model directory configured, or directory failed to load. Please download a model from the Providers settings screen first.")
+            val error = IllegalStateException("MediaPipe on-device AI generation failed: No model directory configured, or directory failed to load. Please download a model from the Providers settings screen first.")
+            onStateUpdate(DefaultProviderState(progress = 0.0f, error = error, message = error.message))
+            throw error
         }
         
-        // 3. Generate on-device image using MediaPipe diffusion
-        val rawTile = engine.generateTile(
+        // 3. Generate on-device image using MediaPipe diffusion progressive / step updates
+        onStateUpdate(DefaultProviderState(progress = 0.1f, message = "Generating wallpaper..."))
+        
+        val steps = 20
+        val rawTile = engine.generateTileProgressively(
             prompt = prompt,
-            steps = 20,
+            steps = steps,
             seed = -1,
             supportTransparency = true
-        ) ?: throw IllegalStateException("MediaPipe AI generation failed: Engine returned a null bitmap.")
+        ) { step, total ->
+            val progress = 0.1f + 0.8f * (step.toFloat() / total.toFloat())
+            onStateUpdate(DefaultProviderState(
+                progress = progress,
+                message = "Generating image: step $step/$total"
+            ))
+        } ?: run {
+            val error = IllegalStateException("MediaPipe AI generation failed: Engine returned a null bitmap.")
+            onStateUpdate(DefaultProviderState(progress = 1.0f, error = error, message = error.message))
+            throw error
+        }
+        
+        onStateUpdate(DefaultProviderState(progress = 0.95f, message = "Upscaling and rendering..."))
         
         // 4. Upscale tile by the configured scale factor (e.g. 2×)
         val scaleFactor = settings.scaleFactor
@@ -67,6 +85,9 @@ object LocalAIProvider : WallpaperProvider {
         }
         
         // 5. Repeat tile perfectly across the screen dimensions
-        return WallpaperGenerator.renderTiledWallpaper(context, generatedTile)
+        val wallpaperBmp = WallpaperGenerator.renderTiledWallpaper(context, generatedTile)
+        
+        onStateUpdate(DefaultProviderState(progress = 1.0f, result = wallpaperBmp, message = "Done"))
+        return wallpaperBmp
     }
 }

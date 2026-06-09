@@ -35,8 +35,10 @@ class Settings(private val preferences: SharedPreferences) {
 
     /** Selected wallpaper generator ([com.baysoft.gallerywall.provider.WallpaperProvider.id]). */
     val activeProviderId: String
-        get() = preferences.getString(PREF_WALLPAPER_PROVIDER, null)
-            ?: WallpaperProviderRegistry.defaultProvider.id
+        get() {
+            val defaultId = if (BuildConfig.DEBUG) "random_color" else "local_ai"
+            return preferences.getString(PREF_WALLPAPER_PROVIDER, defaultId) ?: defaultId
+        }
 
     /** Absolute path of the gallery file last applied as system wallpaper (may be null). */
     val lastAppliedWallpaperPath: String?
@@ -74,7 +76,7 @@ class Settings(private val preferences: SharedPreferences) {
         const val PREF_SCALE_FACTOR = "pref_scale_factor"
 
         const val DEFAULT_GENERATED_COLORS = "#6750A4,#625B71,#7D5260"
-        const val DEFAULT_AUTOMATION_PROMPT = "seamless cute pastel floral pattern, [TimeOfDay], [Weather]"
+        const val DEFAULT_AUTOMATION_PROMPT = "seamless cute pastel floral pattern"
         const val DEFAULT_PERIOD_UNIT = "HOURS"
         const val DEFAULT_SCALE_FACTOR = 2
 

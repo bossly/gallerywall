@@ -111,7 +111,7 @@ class GalleryWall {
         }
 
         /** Renders the current wallpaper using the active provider from [Settings]. */
-        fun createWallpaperBitmap(context: Context): Bitmap {
+        fun createWallpaperBitmap(context: Context, onStateUpdate: (com.baysoft.gallerywall.provider.ProviderState) -> Unit = {}): Bitmap {
             val prefs = PreferenceManager.getDefaultSharedPreferences(context)
             val settings = Settings(prefs)
             val providerId = settings.activeProviderId
@@ -133,7 +133,7 @@ class GalleryWall {
 
             val provider = WallpaperProviderRegistry.get(providerId)
                 ?: WallpaperProviderRegistry.defaultProvider
-            return provider.generateBitmap(context)
+            return provider.generateBitmap(context, onStateUpdate)
         }
 
         fun updateWallpaper(context: Context, image: Bitmap?) {

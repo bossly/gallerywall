@@ -1,7 +1,5 @@
 package com.baysoft.gallerywall.ui
 
-import android.graphics.Color
-import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -16,7 +14,6 @@ import com.baysoft.gallerywall.provider.WallpaperProvider
 import com.baysoft.gallerywall.provider.WallpaperProviderRegistry
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
-import androidx.navigation.fragment.findNavController
 
 class ProvidersFragment : Fragment() {
 

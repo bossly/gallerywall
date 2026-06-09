@@ -84,7 +84,7 @@ fun AutomationScreen(modifier: Modifier = Modifier) {
                 containerColor = if (autoEnabled) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             ),
-            shape = RoundedCornerShape(20.dp),
+            shape = MaterialTheme.shapes.large,
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
@@ -120,7 +120,7 @@ fun AutomationScreen(modifier: Modifier = Modifier) {
         // Prompt Input Configuration Card
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-            shape = RoundedCornerShape(20.dp),
+            shape = MaterialTheme.shapes.large,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -196,7 +196,7 @@ fun AutomationScreen(modifier: Modifier = Modifier) {
         // Scheduling Period Card
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-            shape = RoundedCornerShape(20.dp),
+            shape = MaterialTheme.shapes.large,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -206,38 +206,41 @@ fun AutomationScreen(modifier: Modifier = Modifier) {
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "How often background generations occur (clamped to 15 min minimum).",
+                    text = "Adjust the interval duration below to set how often background generations occur.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
+                val maxVal = when (periodUnit) {
+                    "HOURS" -> 48f
+                    "DAYS" -> 30f
+                    "WEEKS" -> 12f
+                    "MONTHS" -> 12f
+                    else -> 48f
+                }
+                val minVal = 1f
+                val steps = (maxVal - minVal).toInt() - 1
+                val currentValue = (periodValue.toFloatOrNull() ?: 6f).coerceIn(minVal, maxVal)
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    OutlinedTextField(
-                        value = periodValue,
-                        onValueChange = {
-                            periodValue = it
-                            saveAndReschedule()
-                        },
-                        modifier = Modifier.width(100.dp),
-                        label = { Text("Count") },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Number,
-                            imeAction = ImeAction.Done
-                        ),
-                        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
+                    Text(
+                        text = "Every ${currentValue.toInt()} ${periodUnit.lowercase().replaceFirstChar { it.uppercase() }}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
                     )
 
                     // Period Unit Dropdown Selector
                     var dropdownExpanded by remember { mutableStateOf(false) }
-                    Box(modifier = Modifier.weight(1f)) {
+                    Box {
                         OutlinedButton(
                             onClick = { dropdownExpanded = true },
-                            modifier = Modifier.fillMaxWidth()
+                            shape = MaterialTheme.shapes.small
                         ) {
                             Text("Unit: $periodUnit")
                         }
@@ -252,6 +255,16 @@ fun AutomationScreen(modifier: Modifier = Modifier) {
                                     onClick = {
                                         periodUnit = unit
                                         dropdownExpanded = false
+                                        // Adjust period value if it exceeds max for new unit
+                                        val newMax = when (unit) {
+                                            "HOURS" -> 48f
+                                            "DAYS" -> 30f
+                                            "WEEKS" -> 12f
+                                            "MONTHS" -> 12f
+                                            else -> 48f
+                                        }
+                                        val adjusted = currentValue.coerceIn(1f, newMax)
+                                        periodValue = adjusted.toInt().toString()
                                         saveAndReschedule()
                                     }
                                 )
@@ -259,13 +272,30 @@ fun AutomationScreen(modifier: Modifier = Modifier) {
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Slider(
+                    value = currentValue,
+                    onValueChange = {
+                        periodValue = it.toInt().toString()
+                        saveAndReschedule()
+                    },
+                    valueRange = minVal..maxVal,
+                    steps = steps,
+                    colors = SliderDefaults.colors(
+                        thumbColor = MaterialTheme.colorScheme.primary,
+                        activeTrackColor = MaterialTheme.colorScheme.primary,
+                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                )
             }
         }
 
         // Background System Constraints
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-            shape = RoundedCornerShape(20.dp),
+            shape = MaterialTheme.shapes.large,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(16.dp)) {

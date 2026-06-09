@@ -3,10 +3,8 @@ package com.baysoft.gallerywall
 import android.content.Context
 import androidx.preference.PreferenceManager
 import androidx.test.core.app.ApplicationProvider
-import com.baysoft.gallerywall.provider.ProceduralProvider
 import org.junit.After
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertTrue
+import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,24 +29,9 @@ class WallpaperProviderGenerateTest {
     }
 
     @Test
-    fun proceduralProvider_generatesSizedBitmap() {
-        PreferenceManager.getDefaultSharedPreferences(context).edit()
-            .putString(Settings.PREF_GENERATED_COLORS, "#FF0000,#0000FF")
-            .putInt(Settings.PREF_SCALE_FACTOR, 4)
-            .commit()
-        val bmp = ProceduralProvider.generateBitmap(context)
-        assertNotNull(bmp)
-        assertTrue(bmp.width > 0)
-        assertTrue(bmp.height > 0)
-    }
-
-    @Test
-    fun galleryWall_unknownProviderId_fallsBackToDefault() {
-        PreferenceManager.getDefaultSharedPreferences(context).edit()
-            .putString(Settings.PREF_WALLPAPER_PROVIDER, "unknown-provider-id")
-            .commit()
-        val bmp = GalleryWall.createWallpaperBitmap(context)
-        assertNotNull(bmp)
-        assertTrue((bmp?.width ?: 0) > 0)
+    fun localAIProvider_throwsException_whenNoModelLoaded() {
+        assertThrows(IllegalStateException::class.java) {
+            GalleryWall.createWallpaperBitmap(context)
+        }
     }
 }

@@ -1,6 +1,5 @@
 package com.baysoft.gallerywall
 
-import com.baysoft.gallerywall.provider.ProceduralProvider
 import com.baysoft.gallerywall.provider.LocalAIProvider
 import com.baysoft.gallerywall.provider.WallpaperProviderRegistry
 import org.junit.Assert.assertEquals
@@ -16,19 +15,18 @@ class WallpaperProviderRegistryTest {
     }
 
     @Test
-    fun get_proceduralAndAI() {
-        assertSame(ProceduralProvider, WallpaperProviderRegistry.get(ProceduralProvider.id))
+    fun get_ai() {
         assertSame(LocalAIProvider, WallpaperProviderRegistry.get(LocalAIProvider.id))
     }
 
     @Test
-    fun defaultProvider_isProcedural() {
-        assertSame(ProceduralProvider, WallpaperProviderRegistry.defaultProvider)
+    fun defaultProvider_isAI() {
+        assertSame(LocalAIProvider, WallpaperProviderRegistry.defaultProvider)
     }
 
     @Test
     fun all_containsRegisteredProviders() {
         val ids = WallpaperProviderRegistry.all().map { it.id }.toSet()
-        assertEquals(setOf(ProceduralProvider.id, LocalAIProvider.id), ids)
+        assertEquals(setOf(LocalAIProvider.id), ids)
     }
 }
