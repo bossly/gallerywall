@@ -37,6 +37,8 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.preference.PreferenceManager
 import com.baysoft.gallerywall.GalleryWall
 import com.baysoft.gallerywall.Settings
+import com.baysoft.gallerywall.ImageGenerationService
+import com.baysoft.gallerywall.R
 import com.baysoft.gallerywall.data.WallpaperDatabase
 import com.baysoft.gallerywall.data.WallpaperEntity
 import com.baysoft.gallerywall.data.WallpaperRepository
@@ -44,6 +46,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import androidx.compose.ui.res.painterResource
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -71,6 +74,32 @@ fun RecentsScreen(modifier: Modifier = Modifier) {
             }
             wallpapers = list
             isLoading = false
+        }
+    }
+
+    val serviceState by ImageGenerationService.state.collectAsState()
+    val prefs = remember { PreferenceManager.getDefaultSharedPreferences(context) }
+    val settings = remember(prefs) { Settings(prefs) }
+    val activeProviderId = settings.activeProviderId
+
+    val isCurrentlyGenerating = isGenerating || (
+        activeProviderId == "local_ai" && (
+            serviceState is ImageGenerationService.GenerationState.LoadingModel ||
+            serviceState is ImageGenerationService.GenerationState.Generating
+        )
+    )
+
+    var showErrorDialog by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(serviceState) {
+        when (serviceState) {
+            is ImageGenerationService.GenerationState.Success -> {
+                refreshRecents()
+            }
+            is ImageGenerationService.GenerationState.Error -> {
+                showErrorDialog = (serviceState as ImageGenerationService.GenerationState.Error).message
+            }
+            else -> {}
         }
     }
 
@@ -133,7 +162,7 @@ fun RecentsScreen(modifier: Modifier = Modifier) {
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    if (isGenerating) {
+                    if (isCurrentlyGenerating) {
                         item {
                             Card(
                                 colors = CardDefaults.cardColors(
@@ -149,24 +178,85 @@ fun RecentsScreen(modifier: Modifier = Modifier) {
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.Center
                                 ) {
-                                    CircularProgressIndicator(
-                                        color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(48.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                    Text(
-                                        text = "Generating...",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        textAlign = TextAlign.Center
-                                    )
-                                    Text(
-                                        text = "Creating seamless tile",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-                                        textAlign = TextAlign.Center
-                                    )
+                                    val currentState = serviceState
+                                    if (activeProviderId == "local_ai") {
+                                        when (currentState) {
+                                            is ImageGenerationService.GenerationState.LoadingModel -> {
+                                                CircularProgressIndicator(
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(48.dp)
+                                                )
+                                                Spacer(modifier = Modifier.height(16.dp))
+                                                Text(
+                                                    text = "Loading Model...",
+                                                    style = MaterialTheme.typography.titleSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                    textAlign = TextAlign.Center
+                                                )
+                                                Text(
+                                                    text = "Loading weights to internal storage",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                                                    textAlign = TextAlign.Center
+                                                )
+                                            }
+                                            is ImageGenerationService.GenerationState.Generating -> {
+                                                LinearProgressIndicator(
+                                                    progress = currentState.progress,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+                                                )
+                                                Spacer(modifier = Modifier.height(16.dp))
+                                                Text(
+                                                    text = "Generating...",
+                                                    style = MaterialTheme.typography.titleSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                    textAlign = TextAlign.Center
+                                                )
+                                                Text(
+                                                    text = "Step: ${currentState.currentStep}/${currentState.totalSteps}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                                                    textAlign = TextAlign.Center
+                                                )
+                                            }
+                                            else -> {
+                                                CircularProgressIndicator(
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(48.dp)
+                                                )
+                                                Spacer(modifier = Modifier.height(16.dp))
+                                                Text(
+                                                    text = "Initializing...",
+                                                    style = MaterialTheme.typography.titleSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                    textAlign = TextAlign.Center
+                                                )
+                                            }
+                                        }
+                                    } else {
+                                        CircularProgressIndicator(
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(48.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Text(
+                                            text = "Generating...",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Text(
+                                            text = "Creating seamless tile",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -260,42 +350,56 @@ fun RecentsScreen(modifier: Modifier = Modifier) {
         // Floating Action Button to trigger generation
         FloatingActionButton(
             onClick = {
-                if (isGenerating) return@FloatingActionButton
-                scope.launch {
-                    isGenerating = true
-                    try {
-                        val generated = withContext(Dispatchers.IO) {
-                            val bitmap = GalleryWall.createWallpaperBitmap(context)
-                            GalleryWall.updateWallpaper(context, bitmap)
-                            val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-                            val settings = Settings(prefs)
-                            val providerId = settings.activeProviderId
-                            val file = File(context.filesDir, "wallpaper_${providerId}_${System.currentTimeMillis()}.jpg")
-                            java.io.FileOutputStream(file).use { out ->
-                                bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
-                            }
-                            val filePath = file.absolutePath
-                            GalleryWall.rememberAppliedWallpaperPath(context, filePath)
-                            
-                            val promptStr = if (providerId == "local_ai" || providerId == "procedural") {
-                                try {
-                                    com.baysoft.gallerywall.ml.DynamicPromptParser.parse(context, settings.automationPrompt)
-                                } catch (e: Exception) {
-                                    settings.automationPrompt
-                                }
-                            } else ""
-                            
-                            repository.addWallpaper(filePath, providerId, promptStr)
-                            true
-                        }
-                        if (generated) {
-                            Toast.makeText(context, "New wallpaper generated and applied!", Toast.LENGTH_SHORT).show()
-                        }
+                if (isCurrentlyGenerating) return@FloatingActionButton
+                val providerId = settings.activeProviderId
+                if (providerId == "local_ai") {
+                    val activeModelPath = settings.activeModelPath
+                    if (activeModelPath.isNullOrEmpty() || !File(activeModelPath).exists()) {
+                        Toast.makeText(context, "No model loaded. Please download the Stable Diffusion model first.", Toast.LENGTH_LONG).show()
+                        return@FloatingActionButton
+                    }
+                    val rawPrompt = settings.automationPrompt
+                    val resolvedPrompt = try {
+                        com.baysoft.gallerywall.ml.DynamicPromptParser.parse(context, rawPrompt)
                     } catch (e: Exception) {
-                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
-                    } finally {
-                        refreshRecents()
-                        isGenerating = false
+                        rawPrompt
+                    }
+                    val colors = settings.generatedColorsHex
+                    ImageGenerationService.start(context, resolvedPrompt, activeModelPath, colors)
+                } else {
+                    scope.launch {
+                        isGenerating = true
+                        try {
+                            val generated = withContext(Dispatchers.IO) {
+                                val bitmap = GalleryWall.createWallpaperBitmap(context)
+                                GalleryWall.updateWallpaper(context, bitmap)
+                                val file = File(context.filesDir, "wallpaper_${providerId}_${System.currentTimeMillis()}.jpg")
+                                java.io.FileOutputStream(file).use { out ->
+                                    bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                                }
+                                val filePath = file.absolutePath
+                                GalleryWall.rememberAppliedWallpaperPath(context, filePath)
+                                
+                                val promptStr = if (providerId == "procedural") {
+                                    try {
+                                        com.baysoft.gallerywall.ml.DynamicPromptParser.parse(context, settings.automationPrompt)
+                                    } catch (e: Exception) {
+                                        settings.automationPrompt
+                                    }
+                                } else ""
+                                
+                                repository.addWallpaper(filePath, providerId, promptStr)
+                                true
+                            }
+                            if (generated) {
+                                Toast.makeText(context, "New wallpaper generated and applied!", Toast.LENGTH_SHORT).show()
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                        } finally {
+                            refreshRecents()
+                            isGenerating = false
+                        }
                     }
                 }
             },
@@ -305,7 +409,7 @@ fun RecentsScreen(modifier: Modifier = Modifier) {
                 .align(Alignment.BottomEnd)
                 .padding(bottom = 96.dp, end = 16.dp)
         ) {
-            Icon(Icons.Default.Add, contentDescription = "Generate new wallpaper")
+            Icon(painter = painterResource(id = R.drawable.ic_dice), contentDescription = "Generate random wallpaper")
         }
 
         // Preview Detail Modal Dialog
@@ -382,6 +486,19 @@ fun RecentsScreen(modifier: Modifier = Modifier) {
                     }
                 }
             }
+        }
+
+        showErrorDialog?.let { errorMessage ->
+            AlertDialog(
+                onDismissRequest = { showErrorDialog = null },
+                title = { Text("Generation Failed") },
+                text = { Text(errorMessage) },
+                confirmButton = {
+                    TextButton(onClick = { showErrorDialog = null }) {
+                        Text("OK")
+                    }
+                }
+            )
         }
     }
 }

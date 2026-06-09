@@ -35,32 +35,29 @@ object LocalAIProvider : WallpaperProvider {
         val prompt = DynamicPromptParser.parse(context, promptTemplate)
         Log.i(TAG, "Generating AI wallpaper. Raw: '$promptTemplate' -> Resolved: '$prompt'")
         
-        // 2. Load TensorFlow Lite model (with automatic fallback to assets if custom model fails or ends with non-tflite format)
+        // 2. Load MediaPipe Image Generator model directory
         val engine = MLImageEngine.getInstance()
         var modelLoaded = false
         
-        if (!activeModelPath.isNullOrEmpty() && activeModelPath.endsWith(".tflite", ignoreCase = true)) {
-            modelLoaded = engine.loadModel(activeModelPath)
-            if (!modelLoaded) {
-                Log.w(TAG, "Configured TensorFlow Lite model failed to load at: $activeModelPath. Falling back to default asset model.")
+        if (!activeModelPath.isNullOrEmpty()) {
+            val modelDir = java.io.File(activeModelPath)
+            if (modelDir.exists() && modelDir.isDirectory) {
+                modelLoaded = engine.loadModel(context, activeModelPath)
             }
         }
         
         if (!modelLoaded) {
-            modelLoaded = engine.loadModelFromAsset(context, "pixel_art_model.tflite")
+            throw IllegalStateException("MediaPipe on-device AI generation failed: No model directory configured, or directory failed to load. Please download a model from the Providers settings screen first.")
         }
         
-        if (!modelLoaded) {
-            throw IllegalStateException("Local AI generation failed: Failed to load any TensorFlow Lite models (default asset load failed).")
-        }
-        
-        // 3. Generate ML pixel art tile using dynamic diffusion
+        // 3. Generate on-device image using MediaPipe diffusion
         val rawTile = engine.generateTile(
             prompt = prompt,
             colors = colors,
+            steps = 20,
             seed = -1,
             supportTransparency = true
-        ) ?: throw IllegalStateException("Local AI generation failed: Engine returned a null bitmap.")
+        ) ?: throw IllegalStateException("MediaPipe AI generation failed: Engine returned a null bitmap.")
         
         // 4. Upscale tile by the configured scale factor (e.g. 2×)
         val scaleFactor = settings.scaleFactor

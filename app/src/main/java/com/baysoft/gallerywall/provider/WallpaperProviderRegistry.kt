@@ -8,7 +8,6 @@ object WallpaperProviderRegistry {
     private val providers: List<WallpaperProvider> = listOf(
         ProceduralProvider,
         LocalAIProvider,
-        HordeAIProvider,
     )
 
     private val byId: Map<String, WallpaperProvider> = providers.associateBy { it.id }

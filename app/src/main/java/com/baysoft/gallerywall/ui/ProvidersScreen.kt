@@ -6,6 +6,8 @@ import android.net.Uri
 import android.os.Environment
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -82,29 +84,86 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
     // Modal state for custom visual Color Picker
     var editingColorIndex by remember { mutableStateOf<Int?>(null) }
 
-    // Fallback/Initial PyTorch models list (custom models)
-    val fallbackModels = listOf(
-        GgufModel(
-            id = "pixel_art_model",
-            name = "Retro Pixel Art GAN (Default)",
-            description = "High-speed 1-step 64x64 generative network. Generates gorgeous retro sprites, custom colored using your harmonious active palette.",
-            size = "8.6 MB",
-            downloadUrl = "https://huggingface.co/bossly/pixel-art-gan/resolve/main/pixel_art_model.tflite"
+    // Custom model preferences
+    var customModelName by remember { mutableStateOf(prefs.getString("custom_model_name", "") ?: "") }
+    var customModelUrl by remember { mutableStateOf(prefs.getString("custom_model_url", "") ?: "") }
+    var showCustomModelDialog by remember { mutableStateOf(false) }
+
+    // Fallback/Initial MediaPipe Stable Diffusion models list (pre-converted Stable Diffusion v1.5 directories in zip form)
+    val fallbackModels = remember(customModelName, customModelUrl) {
+        val list = mutableListOf(
+            GgufModel(
+                id = "stable_diffusion_1_5",
+                name = "Stable Diffusion v1.5 (Lite)",
+                description = "On-device Stable Diffusion v1.5 text-to-image model. Zipped package contains pre-converted sub-model components optimized for MediaPipe Tasks Vision.",
+                size = "1.2 GB",
+                downloadUrl = "https://huggingface.co/Qualcomm/Stable-Diffusion-v1.5/resolve/main/stable_diffusion_v1_5.zip"
+            )
         )
-    )
+        if (customModelName.isNotEmpty() && customModelUrl.isNotEmpty()) {
+            list.add(
+                GgufModel(
+                    id = "custom_model",
+                    name = customModelName,
+                    description = "Custom user-provided Stable Diffusion v1.5 model directory zip package.",
+                    size = "Custom",
+                    downloadUrl = customModelUrl
+                )
+            )
+        }
+        list
+    }
 
     var modelsList by remember { mutableStateOf(fallbackModels) }
+    LaunchedEffect(fallbackModels) {
+        modelsList = fallbackModels
+    }
     var isFetchingList by remember { mutableStateOf(false) }
 
-    // File exists helper
+    // File exists helper (representing the unzipped directory containing Stable Diffusion model components)
     val getModelFile = { id: String ->
         val baseDir = context.getExternalFilesDir("models") ?: File(context.filesDir, "models")
-        File(baseDir, "$id.tflite")
+        File(baseDir, id)
     }
 
     // Refresh model state helper
     var refreshTrigger by remember { mutableStateOf(0) }
     var previewTrigger by remember { mutableStateOf(0) }
+
+    var importingModelId by remember { mutableStateOf<String?>(null) }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            scope.launch {
+                try {
+                    val modelId = importingModelId ?: "stable_diffusion_1_5"
+                    Log.d("ProvidersScreen", "Selected model ZIP file for import via picker: $uri for model ID: $modelId")
+                    val baseDir = context.getExternalFilesDir("models") ?: File(context.filesDir, "models")
+                    baseDir.mkdirs()
+
+                    Toast.makeText(context, "Importing and unzipping model zip...", Toast.LENGTH_LONG).show()
+
+                    withContext(Dispatchers.IO) {
+                        val targetDir = getModelFile(modelId)
+                        if (targetDir.exists()) {
+                            targetDir.deleteRecursively()
+                        }
+                        targetDir.mkdirs()
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            unzip(input, targetDir)
+                        }
+                    }
+                    Toast.makeText(context, "Model imported successfully!", Toast.LENGTH_SHORT).show()
+                    refreshTrigger++
+                } catch (e: Exception) {
+                    Log.e("ProvidersScreen", "Failed to import selected model zip", e)
+                    Toast.makeText(context, "Failed to import model: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
 
     // Fetch dynamic JSON hosted list from GitHub
     val fetchRemoteModels = {
@@ -580,18 +639,29 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
         if (activeProviderId == "local_ai") {
             item {
                 Spacer(modifier = Modifier.height(24.dp))
-                Text(
-                    text = "3. On-Device AI Models (TFLite)",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "3. On-Device AI Models (MediaPipe)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    TextButton(onClick = { showCustomModelDialog = true }) {
+                        Icon(Icons.Default.Add, contentDescription = "Add Custom Model")
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Add Custom URL")
+                    }
+                }
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
             items(modelsList) { model ->
                 val file = getModelFile(model.id)
-                val exists = file.exists()
+                val exists = file.exists() && file.isDirectory
                 val isCurrentlyActive = activeModelPath == file.absolutePath
 
                 // Trigger reading trigger
@@ -660,57 +730,142 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                         }
                                     }
                                 } else {
-                                    Button(
-                                        onClick = {
-                                            scope.launch {
-                                                try {
-                                                    Log.d("ProvidersScreen", "Download button clicked for model: ${model.name} (${model.id})")
-                                                    Log.d("ProvidersScreen", "Model Download URL: ${model.downloadUrl}")
-                                                    Log.d("ProvidersScreen", "Target local storage path: ${file.absolutePath}")
-
-                                                    // Ensure directories exist
-                                                    val dirsCreated = file.parentFile?.mkdirs() == true
-                                                    Log.d("ProvidersScreen", "Ensured parent directories exist: parent='${file.parent}' dirsCreated=$dirsCreated")
-                                                    
-                                                    // Enqueue Android System Download
-                                                    Log.d("ProvidersScreen", "Configuring DownloadManager.Request...")
-                                                    val request = DownloadManager.Request(Uri.parse(model.downloadUrl))
-                                                        .setTitle(model.name)
-                                                        .setDescription("Downloading TensorFlow Lite on-device AI model weights")
-                                                        .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                                                        .setDestinationUri(Uri.fromFile(file))
-                                                        .setAllowedOverMetered(true)
-                                                        .setAllowedOverRoaming(false)
-
-                                                    Log.d("ProvidersScreen", "Fetching system DOWNLOAD_SERVICE and enqueuing request...")
-                                                    val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-                                                    val downloadId = dm.enqueue(request)
-                                                    Log.d("ProvidersScreen", "Download enqueued successfully with system ID: $downloadId")
-
-                                                    Toast.makeText(context, "Started download in background. Monitor via system tray progress.", Toast.LENGTH_LONG).show()
-                                                    
-                                                    // Fake poll for download simulation completion
-                                                    Log.d("ProvidersScreen", "Launching background file existence polling loop...")
-                                                    scope.launch {
-                                                        var pollIteration = 0
-                                                        while (!file.exists()) {
-                                                            pollIteration++
-                                                            Log.v("ProvidersScreen", "Polling check #$pollIteration: File '${file.name}' does not exist yet. Waiting 2s...")
-                                                            kotlinx.coroutines.delay(2000)
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Button(
+                                            onClick = {
+                                                scope.launch {
+                                                    try {
+                                                        Log.d("ProvidersScreen", "Download button clicked for model: ${model.name} (${model.id})")
+                                                        Log.d("ProvidersScreen", "Model Download URL: ${model.downloadUrl}")
+                                                        
+                                                        // 1. Try direct local files in public Downloads directory first
+                                                        val urlFilename = try {
+                                                            Uri.parse(model.downloadUrl).lastPathSegment ?: "${model.id}.zip"
+                                                        } catch (e: Exception) {
+                                                            "${model.id}.zip"
                                                         }
-                                                        Log.i("ProvidersScreen", "Poller detected downloaded GGUF file exists! fileLength=${file.length()} bytes")
-                                                        refreshTrigger++
+                                                        
+                                                        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                                                        val possibleDirs = listOf(
+                                                            downloadsDir,
+                                                            File("/sdcard/Download"),
+                                                            File("/storage/emulated/0/Download")
+                                                        )
+                                                        
+                                                        var localZip: File? = null
+                                                        for (dir in possibleDirs) {
+                                                            val file = File(dir, urlFilename)
+                                                            if (file.exists() && file.canRead()) {
+                                                                localZip = file
+                                                                break
+                                                            }
+                                                            val fileAlt = File(dir, "${model.id}.zip")
+                                                            if (fileAlt.exists() && fileAlt.canRead()) {
+                                                                localZip = fileAlt
+                                                                break
+                                                            }
+                                                        }
+
+                                                        if (localZip != null) {
+                                                            Log.d("ProvidersScreen", "Found local zip at: ${localZip.absolutePath}. Unzipping directly...")
+                                                            Toast.makeText(context, "Found local ZIP in Downloads! Loading...", Toast.LENGTH_LONG).show()
+                                                            
+                                                            val baseDir = context.getExternalFilesDir("models") ?: File(context.filesDir, "models")
+                                                            
+                                                            withContext(Dispatchers.IO) {
+                                                                baseDir.mkdirs()
+                                                                val targetDir = getModelFile(model.id)
+                                                                if (targetDir.exists()) {
+                                                                    targetDir.deleteRecursively()
+                                                                }
+                                                                targetDir.mkdirs()
+                                                                localZip.inputStream().use { input ->
+                                                                    unzip(input, targetDir)
+                                                                }
+                                                            }
+                                                            Toast.makeText(context, "Loaded model successfully from local ZIP!", Toast.LENGTH_SHORT).show()
+                                                            refreshTrigger++
+                                                            return@launch
+                                                        }
+                                                        
+                                                        // 2. If no local readable zip, proceed with regular system DownloadManager
+                                                        val baseDir = context.getExternalFilesDir("models") ?: File(context.filesDir, "models")
+                                                        val zipFile = File(baseDir, "${model.id}.zip")
+                                                        if (zipFile.exists()) {
+                                                            zipFile.delete()
+                                                        }
+                                                        baseDir.mkdirs()
+
+                                                        Log.d("ProvidersScreen", "Target local storage path: ${zipFile.absolutePath}")
+                                                        Log.d("ProvidersScreen", "Configuring DownloadManager.Request...")
+                                                        val request = DownloadManager.Request(Uri.parse(model.downloadUrl))
+                                                            .setTitle(model.name)
+                                                            .setDescription("Downloading on-device Stable Diffusion model package")
+                                                            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                                                            .setDestinationUri(Uri.fromFile(zipFile))
+                                                            .setAllowedOverMetered(true)
+                                                            .setAllowedOverRoaming(false)
+
+                                                        Log.d("ProvidersScreen", "Fetching system DOWNLOAD_SERVICE and enqueuing request...")
+                                                        val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                                                        val downloadId = dm.enqueue(request)
+                                                        Log.d("ProvidersScreen", "Download enqueued successfully with system ID: $downloadId")
+
+                                                        Toast.makeText(context, "Started download in background. Monitor via system tray progress.", Toast.LENGTH_LONG).show()
+                                                        
+                                                        // Poll for download completion and unzip
+                                                        Log.d("ProvidersScreen", "Launching background file existence polling loop...")
+                                                        scope.launch {
+                                                            var pollIteration = 0
+                                                            while (!zipFile.exists() || zipFile.length() == 0L) {
+                                                                pollIteration++
+                                                                Log.v("ProvidersScreen", "Polling check #$pollIteration: Zip file '${zipFile.name}' does not exist or empty yet. Waiting 2s...")
+                                                                kotlinx.coroutines.delay(2000)
+                                                            }
+                                                            Log.i("ProvidersScreen", "Poller detected downloaded zip file exists! unzipping model package...")
+                                                            
+                                                            withContext(Dispatchers.IO) {
+                                                                try {
+                                                                    val targetDir = getModelFile(model.id)
+                                                                    if (targetDir.exists()) {
+                                                                        targetDir.deleteRecursively()
+                                                                    }
+                                                                    targetDir.mkdirs()
+                                                                    zipFile.inputStream().use { input ->
+                                                                        unzip(input, targetDir)
+                                                                    }
+                                                                    Log.i("ProvidersScreen", "Successfully unzipped model to directory: ${targetDir.absolutePath}")
+                                                                } catch (e: Exception) {
+                                                                    Log.e("ProvidersScreen", "Error unzipping model", e)
+                                                                } finally {
+                                                                    zipFile.delete() // clean up zip file
+                                                                }
+                                                            }
+                                                            refreshTrigger++
+                                                        }
+                                                    } catch (e: Exception) {
+                                                        Log.e("ProvidersScreen", "Exception caught during download initiation flow for model '${model.id}'", e)
+                                                        Toast.makeText(context, "Failed to download model: ${e.message}", Toast.LENGTH_SHORT).show()
                                                     }
-                                                } catch (e: Exception) {
-                                                    Log.e("ProvidersScreen", "Exception caught during download initiation flow for model '${model.id}'", e)
-                                                    Toast.makeText(context, "Failed to download model: ${e.message}", Toast.LENGTH_SHORT).show()
                                                 }
                                             }
+                                        ) {
+                                            Icon(Icons.Default.Add, contentDescription = "Download")
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Download")
                                         }
-                                    ) {
-                                        Icon(Icons.Default.Add, contentDescription = "Download")
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Download")
+
+                                        OutlinedButton(
+                                            onClick = {
+                                                importingModelId = model.id
+                                                filePickerLauncher.launch("*/*")
+                                            }
+                                        ) {
+                                            Text("Import ZIP")
+                                        }
                                     }
                                 }
                             }
@@ -856,6 +1011,77 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
             }
         }
     }
+
+    if (showCustomModelDialog) {
+        var tempName by remember { mutableStateOf(customModelName) }
+        var tempUrl by remember { mutableStateOf(customModelUrl) }
+        
+        Dialog(onDismissRequest = { showCustomModelDialog = false }) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                shape = RoundedCornerShape(28.dp),
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Add Custom Model ZIP",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Provide a public URL to download a zipped (.zip) folder containing your converted Stable Diffusion v1.5 model components.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                    )
+                    
+                    OutlinedTextField(
+                        value = tempName,
+                        onValueChange = { tempName = it },
+                        label = { Text("Model Name") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    
+                    OutlinedTextField(
+                        value = tempUrl,
+                        onValueChange = { tempUrl = it },
+                        label = { Text("Model ZIP Download URL") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 3
+                    )
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = { showCustomModelDialog = false }) {
+                            Text("Cancel")
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                customModelName = tempName
+                                customModelUrl = tempUrl
+                                prefs.edit().putString("custom_model_name", tempName).apply()
+                                prefs.edit().putString("custom_model_url", tempUrl).apply()
+                                showCustomModelDialog = false
+                                refreshTrigger++
+                            },
+                            enabled = tempName.isNotEmpty() && tempUrl.isNotEmpty()
+                        ) {
+                            Text("Save")
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 // Top-level self-contained procedural analogues color helpers
@@ -905,4 +1131,27 @@ private fun hslToHex(h: Float, s: Float, l: Float): String {
     val bInt = ((b + m) * 255f).toInt().coerceIn(0, 255)
     
     return String.format("#%02X%02X%02X", rInt, gInt, bInt)
+}
+
+private fun unzip(zipInputStream: java.io.InputStream, targetDirectory: File) {
+    java.util.zip.ZipInputStream(java.io.BufferedInputStream(zipInputStream)).use { zis ->
+        var ze = zis.nextEntry
+        while (ze != null) {
+            if (ze.name.startsWith("__MACOSX") || ze.name.contains(".DS_Store")) {
+                ze = zis.nextEntry
+                continue
+            }
+            val file = File(targetDirectory, ze.name)
+            val dir = if (ze.isDirectory) file else file.parentFile
+            if (!dir.isDirectory && !dir.mkdirs()) {
+                throw java.io.IOException("Failed to ensure directory: ${dir.absolutePath}")
+            }
+            if (!ze.isDirectory) {
+                java.io.FileOutputStream(file).use { fos ->
+                    zis.copyTo(fos)
+                }
+            }
+            ze = zis.nextEntry
+        }
+    }
 }

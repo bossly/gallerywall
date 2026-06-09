@@ -4,6 +4,9 @@
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".GalleryApplication"
@@ -13,6 +16,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.GalleryWallpaper"
         android:fullBackupContent="@xml/backup_rules">
+
+        <service
+            android:name=".ImageGenerationService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="AI generation task on-device" />
+        </service>
 
         <activity
             android:name=".MainActivity"

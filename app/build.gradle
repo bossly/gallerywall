@@ -13,13 +13,11 @@ android {
         applicationId "com.baysoft.gallerywall"
         minSdk 31
         compileSdk 36
-        versionCode 35
-        versionName "2.3.0"
+        versionCode 36
+        versionName "3.0.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
-
-
 
     buildTypes {
         release {
@@ -46,6 +44,11 @@ android {
         jniLibs {
             useLegacyPackaging = false
         }
+        resources {
+            excludes += '/META-INF/INDEX.LIST'
+            excludes += 'google/protobuf/*.proto'
+            excludes += 'google/protobuf/compiler/*.proto'
+        }
     }
     buildFeatures {
         viewBinding true
@@ -55,6 +58,15 @@ android {
     }
     aaptOptions {
         noCompress 'tflite'
+    }
+}
+
+configurations.all {
+    resolutionStrategy {
+        force 'com.google.protobuf:protobuf-java:3.25.3'
+        dependencySubstitution {
+            substitute module('com.google.protobuf:protobuf-javalite') using module('com.google.protobuf:protobuf-java:3.25.3')
+        }
     }
 }
 
@@ -90,8 +102,8 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-contrib:3.6.1'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
 
-    // TensorFlow Lite
-    implementation 'org.tensorflow:tensorflow-lite:2.14.0'
+    // Google MediaPipe Image Generator
+    implementation 'com.google.mediapipe:tasks-vision-image-generator:0.10.26.1'
 
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'androidx.test:core:1.6.1'
