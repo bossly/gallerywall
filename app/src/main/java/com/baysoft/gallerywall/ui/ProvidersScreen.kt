@@ -24,11 +24,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
 import com.baysoft.gallerywall.Settings
 import com.baysoft.gallerywall.ml.LocalMLEngine
+import com.baysoft.gallerywall.ui.theme.GalleryWallTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -47,15 +50,22 @@ data class GgufModel(
 fun ProvidersScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val prefs = remember { PreferenceManager.getDefaultSharedPreferences(context) }
+    val isPreview = LocalInspectionMode.current
+    val prefs = remember { if (isPreview) null else PreferenceManager.getDefaultSharedPreferences(context) }
     
-    var activeModelPath by remember { mutableStateOf(prefs.getString(Settings.PREF_ACTIVE_MODEL_PATH, null)) }
-    var selectedScale by remember { mutableStateOf(prefs.getInt(Settings.PREF_SCALE_FACTOR, Settings.DEFAULT_SCALE_FACTOR)) }
+    var activeModelPath by remember { mutableStateOf(prefs?.getString(Settings.PREF_ACTIVE_MODEL_PATH, null)) }
+    var selectedScale by remember { mutableStateOf(prefs?.getInt(Settings.PREF_SCALE_FACTOR, Settings.DEFAULT_SCALE_FACTOR) ?: Settings.DEFAULT_SCALE_FACTOR) }
     val downloadingStates = remember { mutableStateMapOf<String, String>() }
 
-    val baseDir = remember { context.getExternalFilesDir("models") ?: File(context.filesDir, "models") }
+    val baseDir = remember { 
+        if (isPreview) {
+            File("")
+        } else {
+            context.getExternalFilesDir("models") ?: File(context.filesDir, "models")
+        }
+    }
     val getModelFile = { id: String ->
-        File(baseDir, id)
+        if (isPreview) File("") else File(baseDir, id)
     }
 
     var refreshTrigger by remember { mutableStateOf(0) }
@@ -89,7 +99,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
         val list = builtIn.toMutableList()
         val builtInIds = builtIn.map { it.id }.toSet()
 
-        if (baseDir.exists() && baseDir.isDirectory) {
+        if (!isPreview && baseDir.exists() && baseDir.isDirectory) {
             val subDirs = baseDir.listFiles()?.filter { it.isDirectory } ?: emptyList()
             for (dir in subDirs) {
                 if (dir.name !in builtInIds) {
@@ -149,7 +159,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
     }
 
     var selectedProviderId by remember {
-        mutableStateOf(prefs.getString(Settings.PREF_WALLPAPER_PROVIDER,
+        mutableStateOf(prefs?.getString(Settings.PREF_WALLPAPER_PROVIDER,
             if (com.baysoft.gallerywall.BuildConfig.DEBUG) "random_color" else "local_ai")
             ?: "local_ai")
     }
@@ -195,7 +205,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                     .clip(MaterialTheme.shapes.large)
                     .clickable {
                         selectedProviderId = provider.id
-                        prefs.edit().putString(Settings.PREF_WALLPAPER_PROVIDER, provider.id).apply()
+                        prefs?.edit()?.putString(Settings.PREF_WALLPAPER_PROVIDER, provider.id)?.apply()
                         Toast.makeText(context, "Provider: ${context.getString(provider.titleRes)}", Toast.LENGTH_SHORT).show()
                     }
             ) {
@@ -281,7 +291,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                             .clip(MaterialTheme.shapes.large)
                             .clickable(enabled = exists) {
                                 activeModelPath = file.absolutePath
-                                prefs.edit().putString(Settings.PREF_ACTIVE_MODEL_PATH, file.absolutePath).apply()
+                                prefs?.edit()?.putString(Settings.PREF_ACTIVE_MODEL_PATH, file.absolutePath)?.apply()
                                 Toast.makeText(context, "Active model set to: ${model.name}", Toast.LENGTH_SHORT).show()
                             }
                     ) {
@@ -353,7 +363,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                 if (isCurrentlyActive) {
                                                     LocalMLEngine.getInstance().unloadModel()
                                                     activeModelPath = null
-                                                    prefs.edit().remove(Settings.PREF_ACTIVE_MODEL_PATH).apply()
+                                                    prefs?.edit()?.remove(Settings.PREF_ACTIVE_MODEL_PATH)?.apply()
                                                 }
                                                 refreshTrigger++
                                                 Toast.makeText(context, "Deleted model folder", Toast.LENGTH_SHORT).show()
@@ -660,7 +670,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                             value = selectedScale.toFloat(),
                             onValueChange = { selectedScale = it.toInt() },
                             onValueChangeFinished = {
-                                prefs.edit().putInt(Settings.PREF_SCALE_FACTOR, selectedScale).apply()
+                                prefs?.edit()?.putInt(Settings.PREF_SCALE_FACTOR, selectedScale)?.apply()
                             },
                             valueRange = 2f..12f,
                             steps = 9,
@@ -745,5 +755,13 @@ private fun unzip(zipInputStream: java.io.InputStream, targetDirectory: File) {
             }
             ze = zis.nextEntry
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ProvidersScreenPreview() {
+    GalleryWallTheme {
+        ProvidersScreen()
     }
 }

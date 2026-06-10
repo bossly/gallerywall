@@ -1,62 +1,127 @@
 package com.baysoft.gallerywall.ui
 
 import android.widget.Toast
-import androidx.compose.animation.*
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
 import com.baysoft.gallerywall.GalleryWall
 import com.baysoft.gallerywall.Settings
+import com.baysoft.gallerywall.ui.theme.GalleryWallTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AutomationScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val focusManager = LocalFocusManager.current
-    val prefs = remember { PreferenceManager.getDefaultSharedPreferences(context) }
+    val isPreview = LocalInspectionMode.current
+    val prefs = remember { if (isPreview) null else PreferenceManager.getDefaultSharedPreferences(context) }
 
     // State bindings
-    var autoEnabled by remember { mutableStateOf(prefs.getBoolean(Settings.PREF_AUTO_WALLPAPER_ENABLED, false)) }
-    var promptTemplate by remember { mutableStateOf(prefs.getString(Settings.PREF_AUTOMATION_PROMPT, Settings.DEFAULT_AUTOMATION_PROMPT) ?: Settings.DEFAULT_AUTOMATION_PROMPT) }
-    var periodValue by remember { mutableStateOf(prefs.getString(Settings.PREF_PERIOD, Settings.DEFAULT_PERIOD_MINUTES_STRING) ?: Settings.DEFAULT_PERIOD_MINUTES_STRING) }
-    var periodUnit by remember { mutableStateOf(prefs.getString(Settings.PREF_PERIOD_UNIT, Settings.DEFAULT_PERIOD_UNIT) ?: Settings.DEFAULT_PERIOD_UNIT) }
+    var autoEnabled by remember { mutableStateOf(prefs?.getBoolean(Settings.PREF_AUTO_WALLPAPER_ENABLED, false) ?: false) }
+    var promptTemplate by remember { mutableStateOf(prefs?.getString(Settings.PREF_AUTOMATION_PROMPT, Settings.DEFAULT_AUTOMATION_PROMPT) ?: Settings.DEFAULT_AUTOMATION_PROMPT) }
+    var periodValue by remember { mutableStateOf(prefs?.getString(Settings.PREF_PERIOD, Settings.DEFAULT_PERIOD_MINUTES_STRING) ?: Settings.DEFAULT_PERIOD_MINUTES_STRING) }
+    var periodUnit by remember { mutableStateOf(prefs?.getString(Settings.PREF_PERIOD_UNIT, Settings.DEFAULT_PERIOD_UNIT) ?: Settings.DEFAULT_PERIOD_UNIT) }
     
-    var constraintWifi by remember { mutableStateOf(prefs.getBoolean(Settings.PREF_CONSTRAINT_WIFI, true)) }
-    var constraintCharging by remember { mutableStateOf(prefs.getBoolean(Settings.PREF_CONSTRAINT_CHARGING, false)) }
-    var constraintIdle by remember { mutableStateOf(prefs.getBoolean(Settings.PREF_CONSTRAINT_IDLE, false)) }
+    var constraintWifi by remember { mutableStateOf(prefs?.getBoolean(Settings.PREF_CONSTRAINT_WIFI, true) ?: true) }
+    var constraintCharging by remember { mutableStateOf(prefs?.getBoolean(Settings.PREF_CONSTRAINT_CHARGING, false) ?: false) }
+    var constraintIdle by remember { mutableStateOf(prefs?.getBoolean(Settings.PREF_CONSTRAINT_IDLE, false) ?: false) }
 
     // Helper to persist and reschedule WorkManager tasks
     val saveAndReschedule = {
-        val editor = prefs.edit()
-        editor.putBoolean(Settings.PREF_AUTO_WALLPAPER_ENABLED, autoEnabled)
-        editor.putString(Settings.PREF_AUTOMATION_PROMPT, promptTemplate)
-        editor.putString(Settings.PREF_PERIOD, periodValue)
-        editor.putString(Settings.PREF_PERIOD_UNIT, periodUnit)
-        editor.putBoolean(Settings.PREF_CONSTRAINT_WIFI, constraintWifi)
-        editor.putBoolean(Settings.PREF_CONSTRAINT_CHARGING, constraintCharging)
-        editor.putBoolean(Settings.PREF_CONSTRAINT_IDLE, constraintIdle)
-        editor.apply()
-        
-        // Reschedule WorkManager
-        GalleryWall.schedule(context)
+        if (!isPreview && prefs != null) {
+            val editor = prefs.edit()
+            editor.putBoolean(Settings.PREF_AUTO_WALLPAPER_ENABLED, autoEnabled)
+            editor.putString(Settings.PREF_AUTOMATION_PROMPT, promptTemplate)
+            editor.putString(Settings.PREF_PERIOD, periodValue)
+            editor.putString(Settings.PREF_PERIOD_UNIT, periodUnit)
+            editor.putBoolean(Settings.PREF_CONSTRAINT_WIFI, constraintWifi)
+            editor.putBoolean(Settings.PREF_CONSTRAINT_CHARGING, constraintCharging)
+            editor.putBoolean(Settings.PREF_CONSTRAINT_IDLE, constraintIdle)
+            editor.apply()
+            
+            // Reschedule WorkManager
+            GalleryWall.schedule(context)
+        }
     }
+
+    AutomationScreenContent(
+        modifier = modifier,
+        autoEnabled = autoEnabled,
+        onAutoEnabledChange = {
+            autoEnabled = it
+            saveAndReschedule()
+            if (!isPreview) {
+                val msg = if (it) "Auto-Wallpaper Enabled" else "Auto-Wallpaper Disabled"
+                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+            }
+        },
+        promptTemplate = promptTemplate,
+        onPromptTemplateChange = {
+            promptTemplate = it
+            saveAndReschedule()
+        },
+        periodValue = periodValue,
+        onPeriodValueChange = {
+            periodValue = it
+            saveAndReschedule()
+        },
+        periodUnit = periodUnit,
+        onPeriodUnitChange = {
+            periodUnit = it
+            saveAndReschedule()
+        },
+        constraintWifi = constraintWifi,
+        onConstraintWifiChange = {
+            constraintWifi = it
+            saveAndReschedule()
+        },
+        constraintCharging = constraintCharging,
+        onConstraintChargingChange = {
+            constraintCharging = it
+            saveAndReschedule()
+        },
+        constraintIdle = constraintIdle,
+        onConstraintIdleChange = {
+            constraintIdle = it
+            saveAndReschedule()
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AutomationScreenContent(
+    modifier: Modifier = Modifier,
+    autoEnabled: Boolean,
+    onAutoEnabledChange: (Boolean) -> Unit,
+    promptTemplate: String,
+    onPromptTemplateChange: (String) -> Unit,
+    periodValue: String,
+    onPeriodValueChange: (String) -> Unit,
+    periodUnit: String,
+    onPeriodUnitChange: (String) -> Unit,
+    constraintWifi: Boolean,
+    onConstraintWifiChange: (Boolean) -> Unit,
+    constraintCharging: Boolean,
+    onConstraintChargingChange: (Boolean) -> Unit,
+    constraintIdle: Boolean,
+    onConstraintIdleChange: (Boolean) -> Unit
+) {
+    val focusManager = LocalFocusManager.current
 
     Column(
         modifier = modifier
@@ -107,12 +172,7 @@ fun AutomationScreen(modifier: Modifier = Modifier) {
                 }
                 Switch(
                     checked = autoEnabled,
-                    onCheckedChange = {
-                        autoEnabled = it
-                        saveAndReschedule()
-                        val msg = if (it) "Auto-Wallpaper Enabled" else "Auto-Wallpaper Disabled"
-                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                    }
+                    onCheckedChange = onAutoEnabledChange
                 )
             }
         }
@@ -138,10 +198,7 @@ fun AutomationScreen(modifier: Modifier = Modifier) {
 
                 OutlinedTextField(
                     value = promptTemplate,
-                    onValueChange = {
-                        promptTemplate = it
-                        saveAndReschedule()
-                    },
+                    onValueChange = onPromptTemplateChange,
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text("AI / Shading Prompt Template") },
                     keyboardOptions = KeyboardOptions(
@@ -168,12 +225,12 @@ fun AutomationScreen(modifier: Modifier = Modifier) {
                 ) {
                     val injectTag = { tag: String ->
                         if (!promptTemplate.contains(tag)) {
-                            promptTemplate = if (promptTemplate.isEmpty() || promptTemplate.endsWith(" ") || promptTemplate.endsWith(",")) {
+                            val newPrompt = if (promptTemplate.isEmpty() || promptTemplate.endsWith(" ") || promptTemplate.endsWith(",")) {
                                 "$promptTemplate$tag"
                             } else {
                                 "$promptTemplate, $tag"
                             }
-                            saveAndReschedule()
+                            onPromptTemplateChange(newPrompt)
                         }
                     }
 
@@ -253,7 +310,6 @@ fun AutomationScreen(modifier: Modifier = Modifier) {
                                 DropdownMenuItem(
                                     text = { Text(unit) },
                                     onClick = {
-                                        periodUnit = unit
                                         dropdownExpanded = false
                                         // Adjust period value if it exceeds max for new unit
                                         val newMax = when (unit) {
@@ -264,8 +320,8 @@ fun AutomationScreen(modifier: Modifier = Modifier) {
                                             else -> 48f
                                         }
                                         val adjusted = currentValue.coerceIn(1f, newMax)
-                                        periodValue = adjusted.toInt().toString()
-                                        saveAndReschedule()
+                                        onPeriodUnitChange(unit)
+                                        onPeriodValueChange(adjusted.toInt().toString())
                                     }
                                 )
                             }
@@ -278,8 +334,7 @@ fun AutomationScreen(modifier: Modifier = Modifier) {
                 Slider(
                     value = currentValue,
                     onValueChange = {
-                        periodValue = it.toInt().toString()
-                        saveAndReschedule()
+                        onPeriodValueChange(it.toInt().toString())
                     },
                     valueRange = minVal..maxVal,
                     steps = steps,
@@ -320,10 +375,7 @@ fun AutomationScreen(modifier: Modifier = Modifier) {
                     Text("Only on Wi-Fi Networks", style = MaterialTheme.typography.bodyMedium)
                     Switch(
                         checked = constraintWifi,
-                        onCheckedChange = {
-                            constraintWifi = it
-                            saveAndReschedule()
-                        }
+                        onCheckedChange = onConstraintWifiChange
                     )
                 }
 
@@ -336,10 +388,7 @@ fun AutomationScreen(modifier: Modifier = Modifier) {
                     Text("Only When Device is Charging", style = MaterialTheme.typography.bodyMedium)
                     Switch(
                         checked = constraintCharging,
-                        onCheckedChange = {
-                            constraintCharging = it
-                            saveAndReschedule()
-                        }
+                        onCheckedChange = onConstraintChargingChange
                     )
                 }
 
@@ -352,15 +401,20 @@ fun AutomationScreen(modifier: Modifier = Modifier) {
                     Text("Only When Device is Idle", style = MaterialTheme.typography.bodyMedium)
                     Switch(
                         checked = constraintIdle,
-                        onCheckedChange = {
-                            constraintIdle = it
-                            saveAndReschedule()
-                        }
+                        onCheckedChange = onConstraintIdleChange
                     )
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(100.dp))
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun AutomationScreenPreview() {
+    GalleryWallTheme {
+        AutomationScreen()
     }
 }

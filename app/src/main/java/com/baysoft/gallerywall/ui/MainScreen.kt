@@ -12,6 +12,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.tooling.preview.Preview
+import com.baysoft.gallerywall.ui.theme.GalleryWallTheme
 
 enum class GalleryTab(val title: String, val icon: ImageVector) {
     GALLERY("Gallery", Icons.Default.Home),
@@ -58,5 +60,13 @@ fun MainScreen() {
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun MainScreenPreview() {
+    GalleryWallTheme {
+        MainScreen()
     }
 }

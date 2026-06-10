@@ -1,12 +1,8 @@
 package com.baysoft.gallerywall.ui
 
-import android.content.Context
-import android.graphics.BitmapFactory
 import android.widget.Toast
-import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -18,9 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -40,7 +33,6 @@ import androidx.preference.PreferenceManager
 import com.baysoft.gallerywall.GalleryWall
 import com.baysoft.gallerywall.Settings
 import com.baysoft.gallerywall.ImageGenerationService
-import com.baysoft.gallerywall.R
 import com.baysoft.gallerywall.data.WallpaperDatabase
 import com.baysoft.gallerywall.data.WallpaperEntity
 import com.baysoft.gallerywall.data.WallpaperRepository
@@ -49,7 +41,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.tooling.preview.Preview
+import com.baysoft.gallerywall.ui.theme.GalleryWallTheme
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -97,9 +91,8 @@ fun GalleryScreen(modifier: Modifier = Modifier) {
     var promptText by remember {
         mutableStateOf(prefs.getString(Settings.PREF_AUTOMATION_PROMPT, Settings.DEFAULT_AUTOMATION_PROMPT) ?: Settings.DEFAULT_AUTOMATION_PROMPT)
     }
-    val focusManager = LocalFocusManager.current
 
-    val onGenerate = {
+    val onGenerate: () -> Unit = {
         val providerId = settings.activeProviderId
         if (providerId == "local_ai") {
             val activeModelPath = settings.activeModelPath
@@ -165,6 +158,68 @@ fun GalleryScreen(modifier: Modifier = Modifier) {
     LaunchedEffect(Unit) {
         refreshRecents()
     }
+
+    GalleryScreenContent(
+        modifier = modifier,
+        wallpapers = wallpapers,
+        selectedWallpaper = selectedWallpaper,
+        isLoading = isLoading,
+        isCurrentlyGenerating = isCurrentlyGenerating,
+        currentProviderState = currentProviderState,
+        serviceState = serviceState,
+        activeProviderId = activeProviderId,
+        showErrorDialog = showErrorDialog,
+        promptText = promptText,
+        onPromptTextChange = {
+            promptText = it
+            prefs.edit().putString(Settings.PREF_AUTOMATION_PROMPT, it).apply()
+        },
+        onGenerate = onGenerate,
+        onSelectWallpaper = { selectedWallpaper = it },
+        onDeleteWallpaper = { entity ->
+            scope.launch {
+                repository.deleteWallpaper(entity)
+                if (selectedWallpaper == entity) {
+                    selectedWallpaper = null
+                }
+                refreshRecents()
+                Toast.makeText(context, "Deleted wallpaper", Toast.LENGTH_SHORT).show()
+            }
+        },
+        onApplyWallpaper = { bitmap ->
+            scope.launch {
+                withContext(Dispatchers.IO) {
+                    GalleryWall.updateWallpaper(context, bitmap)
+                }
+                Toast.makeText(context, "Wallpaper Applied!", Toast.LENGTH_SHORT).show()
+                selectedWallpaper = null
+            }
+        },
+        onDismissErrorDialog = { showErrorDialog = null }
+    )
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun GalleryScreenContent(
+    modifier: Modifier = Modifier,
+    wallpapers: List<WallpaperEntity>,
+    selectedWallpaper: WallpaperEntity?,
+    isLoading: Boolean,
+    isCurrentlyGenerating: Boolean,
+    currentProviderState: ProviderState?,
+    serviceState: ImageGenerationService.GenerationState,
+    activeProviderId: String,
+    showErrorDialog: String?,
+    promptText: String,
+    onPromptTextChange: (String) -> Unit,
+    onGenerate: () -> Unit,
+    onSelectWallpaper: (WallpaperEntity?) -> Unit,
+    onDeleteWallpaper: (WallpaperEntity) -> Unit,
+    onApplyWallpaper: (Bitmap) -> Unit,
+    onDismissErrorDialog: () -> Unit
+) {
+    val focusManager = LocalFocusManager.current
 
     Box(modifier = modifier.fillMaxSize()) {
         if (isLoading) {
@@ -345,9 +400,16 @@ fun GalleryScreen(modifier: Modifier = Modifier) {
 
                     items(wallpapers) { entity ->
                         val file = File(entity.filePath)
-                        if (file.exists()) {
+                        val isPreview = LocalInspectionMode.current
+                        if (file.exists() || isPreview) {
                             val bitmap = remember(entity.filePath) {
-                                decodeWallpaperBitmap(entity.filePath)
+                                if (isPreview) {
+                                    Bitmap.createBitmap(200, 300, Bitmap.Config.ARGB_8888).apply {
+                                        eraseColor(android.graphics.Color.DKGRAY)
+                                    }
+                                } else {
+                                    decodeWallpaperBitmap(entity.filePath)
+                                }
                             }
                             if (bitmap != null) {
                                 Card(
@@ -360,13 +422,9 @@ fun GalleryScreen(modifier: Modifier = Modifier) {
                                         .aspectRatio(0.6f)
                                         .clip(RoundedCornerShape(16.dp))
                                         .combinedClickable(
-                                            onClick = { selectedWallpaper = entity },
+                                            onClick = { onSelectWallpaper(entity) },
                                             onLongClick = {
-                                                scope.launch {
-                                                    repository.deleteWallpaper(entity)
-                                                    refreshRecents()
-                                                    Toast.makeText(context, "Deleted wallpaper", Toast.LENGTH_SHORT).show()
-                                                }
+                                                onDeleteWallpaper(entity)
                                             }
                                         )
                                 ) {
@@ -426,10 +484,7 @@ fun GalleryScreen(modifier: Modifier = Modifier) {
             ) {
                 OutlinedTextField(
                     value = promptText,
-                    onValueChange = {
-                        promptText = it
-                        prefs.edit().putString(Settings.PREF_AUTOMATION_PROMPT, it).apply()
-                    },
+                    onValueChange = onPromptTextChange,
                     modifier = Modifier.weight(1f),
                     placeholder = { Text("Describe your wallpaper...") },
                     maxLines = 2,
@@ -460,12 +515,19 @@ fun GalleryScreen(modifier: Modifier = Modifier) {
 
         // Preview Detail Modal Dialog
         selectedWallpaper?.let { entity ->
+            val isPreview = LocalInspectionMode.current
             val bitmap = remember(entity.filePath) {
-                decodeWallpaperBitmap(entity.filePath)
+                if (isPreview) {
+                    Bitmap.createBitmap(200, 300, Bitmap.Config.ARGB_8888).apply {
+                        eraseColor(android.graphics.Color.DKGRAY)
+                    }
+                } else {
+                    decodeWallpaperBitmap(entity.filePath)
+                }
             }
             if (bitmap != null) {
                 Dialog(
-                    onDismissRequest = { selectedWallpaper = null },
+                    onDismissRequest = { onSelectWallpaper(null) },
                     properties = DialogProperties(usePlatformDefaultWidth = false)
                 ) {
                     Surface(
@@ -520,12 +582,7 @@ fun GalleryScreen(modifier: Modifier = Modifier) {
                                         contentColor = MaterialTheme.colorScheme.onErrorContainer
                                     ),
                                     onClick = {
-                                        scope.launch {
-                                            repository.deleteWallpaper(entity)
-                                            selectedWallpaper = null
-                                            refreshRecents()
-                                            Toast.makeText(context, "Deleted wallpaper", Toast.LENGTH_SHORT).show()
-                                        }
+                                        onDeleteWallpaper(entity)
                                     }
                                 ) {
                                     Icon(Icons.Default.Delete, contentDescription = "Delete")
@@ -539,13 +596,7 @@ fun GalleryScreen(modifier: Modifier = Modifier) {
                                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                                     ),
                                     onClick = {
-                                        scope.launch {
-                                            withContext(Dispatchers.IO) {
-                                                GalleryWall.updateWallpaper(context, bitmap)
-                                            }
-                                            Toast.makeText(context, "Wallpaper Applied!", Toast.LENGTH_SHORT).show()
-                                            selectedWallpaper = null
-                                        }
+                                        onApplyWallpaper(bitmap)
                                     }
                                 ) {
                                     Icon(Icons.Default.Done, contentDescription = "Set Wallpaper")
@@ -561,11 +612,11 @@ fun GalleryScreen(modifier: Modifier = Modifier) {
 
         showErrorDialog?.let { errorMessage ->
             AlertDialog(
-                onDismissRequest = { showErrorDialog = null },
+                onDismissRequest = onDismissErrorDialog,
                 title = { Text("Generation Failed") },
                 text = { Text(errorMessage) },
                 confirmButton = {
-                    TextButton(onClick = { showErrorDialog = null }) {
+                    TextButton(onClick = onDismissErrorDialog) {
                         Text("OK")
                     }
                 }
@@ -584,5 +635,99 @@ private fun decodeWallpaperBitmap(path: String): android.graphics.Bitmap? {
         }
     } catch (e: Exception) {
         android.graphics.BitmapFactory.decodeFile(path)
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun GalleryScreenPreview() {
+    GalleryWallTheme {
+        GalleryScreenContent(
+            wallpapers = listOf(
+                WallpaperEntity(
+                    id = 1,
+                    filePath = "mock_path_1.jpg",
+                    dateAdded = System.currentTimeMillis() - 3600000,
+                    providerId = "local_ai",
+                    prompt = "A futuristic city in cyberpunk style, neon lights"
+                ),
+                WallpaperEntity(
+                    id = 2,
+                    filePath = "mock_path_2.jpg",
+                    dateAdded = System.currentTimeMillis() - 7200000,
+                    providerId = "procedural",
+                    prompt = "Geometric seamless tile pattern with green and blue shades"
+                ),
+                WallpaperEntity(
+                    id = 3,
+                    filePath = "mock_path_3.jpg",
+                    dateAdded = System.currentTimeMillis() - 10800000,
+                    providerId = "random_color",
+                    prompt = "Warm sunset colors gradient"
+                )
+            ),
+            selectedWallpaper = null,
+            isLoading = false,
+            isCurrentlyGenerating = false,
+            currentProviderState = null,
+            serviceState = ImageGenerationService.GenerationState.Idle,
+            activeProviderId = "local_ai",
+            showErrorDialog = null,
+            promptText = "Describe your wallpaper...",
+            onPromptTextChange = {},
+            onGenerate = {},
+            onSelectWallpaper = {},
+            onDeleteWallpaper = {},
+            onApplyWallpaper = {},
+            onDismissErrorDialog = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun GalleryScreenEmptyPreview() {
+    GalleryWallTheme {
+        GalleryScreenContent(
+            wallpapers = emptyList(),
+            selectedWallpaper = null,
+            isLoading = false,
+            isCurrentlyGenerating = false,
+            currentProviderState = null,
+            serviceState = ImageGenerationService.GenerationState.Idle,
+            activeProviderId = "local_ai",
+            showErrorDialog = null,
+            promptText = "",
+            onPromptTextChange = {},
+            onGenerate = {},
+            onSelectWallpaper = {},
+            onDeleteWallpaper = {},
+            onApplyWallpaper = {},
+            onDismissErrorDialog = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun GalleryScreenGeneratingPreview() {
+    GalleryWallTheme {
+        GalleryScreenContent(
+            wallpapers = emptyList(),
+            selectedWallpaper = null,
+            isLoading = false,
+            isCurrentlyGenerating = true,
+            currentProviderState = null,
+            serviceState = ImageGenerationService.GenerationState.Generating(0.45f, 9, 20),
+            activeProviderId = "local_ai",
+            showErrorDialog = null,
+            promptText = "A cute fluffy kitten",
+            onPromptTextChange = {},
+            onGenerate = {},
+            onSelectWallpaper = {},
+            onDeleteWallpaper = {},
+            onApplyWallpaper = {},
+            onDismissErrorDialog = {}
+        )
     }
 }
