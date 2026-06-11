@@ -99,11 +99,7 @@ fun GalleryScreen(modifier: Modifier = Modifier) {
             if (activeModelPath.isNullOrEmpty() || !File(activeModelPath).exists()) {
                 Toast.makeText(context, "No model loaded. Please download the Stable Diffusion model first.", Toast.LENGTH_LONG).show()
             } else {
-                val resolvedPrompt = try {
-                    com.baysoft.gallerywall.ml.DynamicPromptParser.parse(context, promptText)
-                } catch (e: Exception) {
-                    promptText
-                }
+                val resolvedPrompt = promptText
                 val colors = settings.generatedColorsHex
                 ImageGenerationService.start(context, resolvedPrompt, activeModelPath, colors)
             }
@@ -262,7 +258,7 @@ fun GalleryScreenContent(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Long press any wallpaper to delete or apply directly.",
+                    text = "Long press any wallpaper to apply it directly.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                 )
@@ -424,7 +420,7 @@ fun GalleryScreenContent(
                                         .combinedClickable(
                                             onClick = { onSelectWallpaper(entity) },
                                             onLongClick = {
-                                                onDeleteWallpaper(entity)
+                                                onApplyWallpaper(bitmap)
                                             }
                                         )
                                 ) {

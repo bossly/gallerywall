@@ -15,7 +15,6 @@ import androidx.core.app.NotificationCompat
 import androidx.preference.PreferenceManager
 import com.baysoft.gallerywall.data.WallpaperDatabase
 import com.baysoft.gallerywall.data.WallpaperRepository
-import com.baysoft.gallerywall.ml.DynamicPromptParser
 import com.baysoft.gallerywall.ml.LocalMLEngine
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow

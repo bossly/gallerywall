@@ -63,7 +63,7 @@
     <string name="provider_procedural_title">Procedural Pattern</string>
     <string name="provider_procedural_summary">Generate beautiful, organic Memphis geometric and interlocking stone tiled patterns locally.</string>
     <string name="provider_ai_title">On-Device AI Generator</string>
-    <string name="provider_ai_summary">Synthesize stunning 64x64 pixel art tile wallpapers completely offline from text prompts using tiny local AI models.</string>
+    <string name="provider_ai_summary">Synthesize stunning art wallpapers completely offline from text prompts using tiny local AI models.</string>
     <string name="provider_color_title">Random Color</string>
     <string name="provider_color_summary">Generate vibrant random gradient wallpapers instantly. Available in debug builds for quick testing.</string>
 </resources>

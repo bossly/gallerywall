@@ -185,12 +185,12 @@ fun AutomationScreenContent(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "Wallpaper Prompt Template",
+                    text = "Wallpaper Prompt",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Define standard keywords. Supports dynamic bracket tags like [TimeOfDay], [Season], or [Weather] which resolve live.",
+                    text = "Define standard keywords used for background generations.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     modifier = Modifier.padding(bottom = 12.dp)
@@ -200,7 +200,7 @@ fun AutomationScreenContent(
                     value = promptTemplate,
                     onValueChange = onPromptTemplateChange,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("AI / Shading Prompt Template") },
+                    label = { Text("Prompt") },
                     keyboardOptions = KeyboardOptions(
                         imeAction = ImeAction.Done,
                         keyboardType = KeyboardType.Text
@@ -208,45 +208,6 @@ fun AutomationScreenContent(
                     keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                     maxLines = 3
                 )
-
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                // Quick Inject Tags
-                Text(
-                    text = "Quick Inject Variables:",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    val injectTag = { tag: String ->
-                        if (!promptTemplate.contains(tag)) {
-                            val newPrompt = if (promptTemplate.isEmpty() || promptTemplate.endsWith(" ") || promptTemplate.endsWith(",")) {
-                                "$promptTemplate$tag"
-                            } else {
-                                "$promptTemplate, $tag"
-                            }
-                            onPromptTemplateChange(newPrompt)
-                        }
-                    }
-
-                    AssistChip(
-                        onClick = { injectTag("[TimeOfDay]") },
-                        label = { Text("[TimeOfDay]") }
-                    )
-                    AssistChip(
-                        onClick = { injectTag("[Season]") },
-                        label = { Text("[Season]") }
-                    )
-                    AssistChip(
-                        onClick = { injectTag("[Weather]") },
-                        label = { Text("[Weather]") }
-                    )
-                }
             }
         }
 
@@ -270,11 +231,11 @@ fun AutomationScreenContent(
                 )
 
                 val maxVal = when (periodUnit) {
-                    "HOURS" -> 48f
+                    "HOURS" -> 24f
                     "DAYS" -> 30f
                     "WEEKS" -> 12f
                     "MONTHS" -> 12f
-                    else -> 48f
+                    else -> 24f
                 }
                 val minVal = 1f
                 val steps = (maxVal - minVal).toInt() - 1
@@ -313,11 +274,11 @@ fun AutomationScreenContent(
                                         dropdownExpanded = false
                                         // Adjust period value if it exceeds max for new unit
                                         val newMax = when (unit) {
-                                            "HOURS" -> 48f
+                                            "HOURS" -> 24f
                                             "DAYS" -> 30f
                                             "WEEKS" -> 12f
                                             "MONTHS" -> 12f
-                                            else -> 48f
+                                            else -> 24f
                                         }
                                         val adjusted = currentValue.coerceIn(1f, newMax)
                                         onPeriodUnitChange(unit)

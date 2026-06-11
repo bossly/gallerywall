@@ -119,11 +119,7 @@ class GalleryWall {
             
             val promptStr = if (providerId == "local_ai") {
                 val rawPrompt = settings.automationPrompt
-                val resolvedPrompt = try {
-                    com.baysoft.gallerywall.ml.DynamicPromptParser.parse(context, rawPrompt)
-                } catch (e: Exception) {
-                    rawPrompt
-                }
+                val resolvedPrompt = rawPrompt
                 "Raw: \"$rawPrompt\", Resolved: \"$resolvedPrompt\""
             } else {
                 "None"
@@ -167,11 +163,7 @@ class GalleryWall {
                     val repo = com.baysoft.gallerywall.data.WallpaperRepository(db.wallpaperDao())
                     
                     val promptStr = if (providerId == "local_ai" || providerId == "procedural") {
-                        try {
-                            com.baysoft.gallerywall.ml.DynamicPromptParser.parse(context, settings.automationPrompt)
-                        } catch (e: Exception) {
-                            settings.automationPrompt
-                        }
+                        settings.automationPrompt
                     } else ""
                     
                     repo.addWallpaper(filePath, providerId, promptStr)

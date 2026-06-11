@@ -7,7 +7,6 @@ import androidx.preference.PreferenceManager
 import com.baysoft.gallerywall.R
 import com.baysoft.gallerywall.Settings
 import com.baysoft.gallerywall.WallpaperGenerator
-import com.baysoft.gallerywall.ml.DynamicPromptParser
 import com.baysoft.gallerywall.ml.LocalMLEngine
 
 /**
@@ -31,8 +30,8 @@ object LocalAIProvider : WallpaperProvider {
         val activeModelPath = settings.activeModelPath
         
         // 1. Resolve dynamic prompt placeholders
-        val prompt = DynamicPromptParser.parse(context, promptTemplate)
-        Log.i(TAG, "Generating AI wallpaper. Raw: '$promptTemplate' -> Resolved: '$prompt'")
+        val prompt = promptTemplate
+        Log.i(TAG, "Generating AI wallpaper. Prompt: '$prompt'")
         
         // 2. Load MediaPipe Image Generator model directory
         val engine = LocalMLEngine.getInstance()
