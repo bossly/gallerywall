@@ -33,7 +33,7 @@ fun AutomationScreen(modifier: Modifier = Modifier) {
     // State bindings
     var autoEnabled by remember { mutableStateOf(prefs?.getBoolean(Settings.PREF_AUTO_WALLPAPER_ENABLED, false) ?: false) }
     var promptTemplate by remember { mutableStateOf(prefs?.getString(Settings.PREF_AUTOMATION_PROMPT, Settings.DEFAULT_AUTOMATION_PROMPT) ?: Settings.DEFAULT_AUTOMATION_PROMPT) }
-    var periodValue by remember { mutableStateOf(prefs?.getString(Settings.PREF_PERIOD, Settings.DEFAULT_PERIOD_MINUTES_STRING) ?: Settings.DEFAULT_PERIOD_MINUTES_STRING) }
+    var periodValue by remember { mutableStateOf(prefs?.getString(Settings.PREF_PERIOD, "1h") ?: "1s") }
     var periodUnit by remember { mutableStateOf(prefs?.getString(Settings.PREF_PERIOD_UNIT, Settings.DEFAULT_PERIOD_UNIT) ?: Settings.DEFAULT_PERIOD_UNIT) }
     
     var constraintWifi by remember { mutableStateOf(prefs?.getBoolean(Settings.PREF_CONSTRAINT_WIFI, true) ?: true) }

@@ -42,7 +42,8 @@ data class GgufModel(
     val name: String,
     val description: String,
     val size: String,
-    val downloadUrl: String
+    val downloadUrl: String,
+    val sha256: String = ""
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,7 +79,8 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                 name = "Stable Diffusion v1.5 (Lite)",
                 description = "On-device Stable Diffusion v1.5 text-to-image model. Zipped package contains pre-converted sub-model components optimized for MediaPipe Tasks Vision.",
                 size = "1.2 GB",
-                downloadUrl = "https://drive.usercontent.google.com/download?id=1b2o6jPS8qod08MRv4SmbnWoeq_TRMvA-&export=download&authuser=0&confirm=t&uuid=1bfe2f6f-4af2-4324-a8ca-5f43d22346d2&at=AAINaIL6q-ilMini4cWl9Cgcwf05%3A1781033628997"
+                downloadUrl = "https://github.com/bossly/gallerywall/releases/download/2.3.1/stable_diffusion_v1_5.zip",
+                sha256 = "56680bed991bc2fe5785504d3bfaa4ce495b62f0535c7f3b72eb206ef09cfcf4"
             ),
 //            GgufModel(
 //                id = "bk_sdm_small",
@@ -458,12 +460,23 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
 
                                                                 if (localZip != null) {
                                                                     Log.d("ProvidersScreen", "Found local zip at: ${localZip.absolutePath}. Unzipping directly...")
-                                                                    downloadingStates[model.id] = "Extracting..."
                                                                     
                                                                     val baseDir = context.getExternalFilesDir("models") ?: File(context.filesDir, "models")
                                                                     
+                                                                    var errorMessage: String? = null
                                                                     val unzipSuccess = withContext(Dispatchers.IO) {
                                                                         try {
+                                                                            if (model.sha256.isNotEmpty()) {
+                                                                                downloadingStates[model.id] = "Verifying..."
+                                                                                val actualSha = calculateSha256(localZip)
+                                                                                if (actualSha != model.sha256) {
+                                                                                    Log.e("ProvidersScreen", "Local zip SHA256 mismatch! Expected ${model.sha256}, got $actualSha")
+                                                                                    errorMessage = "Local file corrupted (checksum mismatch)"
+                                                                                    return@withContext false
+                                                                                }
+                                                                            }
+
+                                                                            downloadingStates[model.id] = "Extracting..."
                                                                             baseDir.mkdirs()
                                                                             val targetDir = getModelFile(model.id)
                                                                             if (targetDir.exists()) {
@@ -476,6 +489,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                                             true
                                                                         } catch (e: Exception) {
                                                                             Log.e("ProvidersScreen", "Error unzipping local model ZIP", e)
+                                                                            errorMessage = "Extraction failed: ${e.message}"
                                                                             false
                                                                         }
                                                                     }
@@ -484,8 +498,8 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                                         Toast.makeText(context, "Loaded model successfully from local ZIP!", Toast.LENGTH_SHORT).show()
                                                                     } else {
                                                                         Log.e("ProvidersScreen", "Failed to load/extract model from local ZIP for model ${model.id}")
-                                                                        downloadingStates[model.id] = "Error: Extraction failed"
-                                                                        Toast.makeText(context, "Failed to load model from local ZIP", Toast.LENGTH_LONG).show()
+                                                                        downloadingStates[model.id] = "Error: ${errorMessage ?: "Unknown error"}"
+                                                                        Toast.makeText(context, "Failed to load model from local ZIP: $errorMessage", Toast.LENGTH_LONG).show()
                                                                     }
                                                                     refreshTrigger++
                                                                     return@launch
@@ -565,9 +579,19 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                                         downloadingStates[model.id] = "Error: $errorMessage"
                                                                         Toast.makeText(context, errorMessage ?: "Download failed", Toast.LENGTH_LONG).show()
                                                                     } else {
-                                                                        downloadingStates[model.id] = "Extracting..."
                                                                         val unzipSuccess = withContext(Dispatchers.IO) {
                                                                             try {
+                                                                                if (model.sha256.isNotEmpty()) {
+                                                                                    downloadingStates[model.id] = "Verifying..."
+                                                                                    val actualSha = calculateSha256(zipFile)
+                                                                                    if (actualSha != model.sha256) {
+                                                                                        Log.e("ProvidersScreen", "Downloaded zip SHA256 mismatch! Expected ${model.sha256}, got $actualSha")
+                                                                                        errorMessage = "Checksum mismatch! Corrupted download."
+                                                                                        return@withContext false
+                                                                                    }
+                                                                                }
+
+                                                                                downloadingStates[model.id] = "Extracting..."
                                                                                 val targetDir = getModelFile(model.id)
                                                                                 if (targetDir.exists()) {
                                                                                     targetDir.deleteRecursively()
@@ -756,6 +780,19 @@ private fun unzip(zipInputStream: java.io.InputStream, targetDirectory: File) {
             ze = zis.nextEntry
         }
     }
+}
+
+private fun calculateSha256(file: File): String {
+    val digest = java.security.MessageDigest.getInstance("SHA-256")
+    file.inputStream().use { fis ->
+        val buffer = ByteArray(8192)
+        var bytesRead = fis.read(buffer)
+        while (bytesRead != -1) {
+            digest.update(buffer, 0, bytesRead)
+            bytesRead = fis.read(buffer)
+        }
+    }
+    return digest.digest().joinToString("") { "%02x".format(it) }
 }
 
 @Preview(showBackground = true)
