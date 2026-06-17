@@ -73,6 +73,14 @@ class ImageGenerationService : Service() {
         val prompt = intent?.getStringExtra(EXTRA_PROMPT) ?: ""
         val modelPath = intent?.getStringExtra(EXTRA_MODEL_PATH) ?: ""
 
+        if (PromptFilter.containsInappropriateContent(prompt)) {
+            Log.w(TAG, "Aborting generation: Inappropriate prompt detected.")
+            showErrorNotification("Inappropriate prompt detected. Please try another one.")
+            _state.value = GenerationState.Error("Inappropriate prompt detected.")
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
         startForeground(NOTIFICATION_ID, buildNotification("Initializing service...", -2))
 
         activeJob?.cancel()

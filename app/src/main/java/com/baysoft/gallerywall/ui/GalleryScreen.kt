@@ -31,6 +31,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.preference.PreferenceManager
 import com.baysoft.gallerywall.GalleryWall
+import com.baysoft.gallerywall.PromptFilter
 import com.baysoft.gallerywall.Settings
 import com.baysoft.gallerywall.ImageGenerationService
 import com.baysoft.gallerywall.data.WallpaperDatabase
@@ -94,7 +95,10 @@ fun GalleryScreen(modifier: Modifier = Modifier) {
 
     val onGenerate: () -> Unit = {
         val providerId = settings.activeProviderId
-        if (providerId == "local_ai") {
+
+        if (PromptFilter.containsInappropriateContent(promptText)) {
+            Toast.makeText(context, "Inappropriate prompt detected. Please try another one.", Toast.LENGTH_LONG).show()
+        } else if (providerId == "local_ai") {
             val activeModelPath = settings.activeModelPath
             if (activeModelPath.isNullOrEmpty() || !File(activeModelPath).exists()) {
                 Toast.makeText(context, "No model loaded. Please download the Stable Diffusion model first.", Toast.LENGTH_LONG).show()
