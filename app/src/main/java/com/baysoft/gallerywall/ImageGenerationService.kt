@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
 import java.io.FileOutputStream
+import androidx.core.graphics.scale
 
 class ImageGenerationService : Service() {
 
@@ -51,11 +52,7 @@ class ImageGenerationService : Service() {
                 putExtra(EXTRA_MODEL_PATH, modelPath)
                 putExtra(EXTRA_COLORS_HEX, colorsHex)
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
+            context.startForegroundService(intent)
         }
     }
 
@@ -134,7 +131,7 @@ class ImageGenerationService : Service() {
                 val scaleFactor = settings.scaleFactor
                 val scaledSize = rawTile.width * scaleFactor
                 val generatedTile = if (scaleFactor > 1) {
-                    Bitmap.createScaledBitmap(rawTile, scaledSize, scaledSize, true)
+                    rawTile.scale(scaledSize, scaledSize)
                 } else {
                     rawTile
                 }
@@ -229,15 +226,13 @@ class ImageGenerationService : Service() {
     }
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "AI Image Generation"
-            val descriptionText = "Notifications for on-device AI wallpaper generation progress"
-            val importance = NotificationManager.IMPORTANCE_LOW
-            val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
-                description = descriptionText
-            }
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+        val name = "AI Image Generation"
+        val descriptionText = "Notifications for on-device AI wallpaper generation progress"
+        val importance = NotificationManager.IMPORTANCE_LOW
+        val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
+            description = descriptionText
         }
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
     }
 }

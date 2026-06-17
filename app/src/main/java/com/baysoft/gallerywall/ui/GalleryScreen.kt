@@ -11,10 +11,12 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import android.graphics.Bitmap
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.Send
+import androidx.core.content.edit
+import androidx.core.graphics.createBitmap
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -172,7 +174,7 @@ fun GalleryScreen(modifier: Modifier = Modifier) {
         promptText = promptText,
         onPromptTextChange = {
             promptText = it
-            prefs.edit().putString(Settings.PREF_AUTOMATION_PROMPT, it).apply()
+            prefs.edit { putString(Settings.PREF_AUTOMATION_PROMPT, it) }
         },
         onGenerate = onGenerate,
         onSelectWallpaper = { selectedWallpaper = it },
@@ -292,8 +294,7 @@ fun GalleryScreenContent(
                                     verticalArrangement = Arrangement.Center
                                 ) {
                                     if (activeProviderId == "local_ai") {
-                                        val currentState = serviceState
-                                        when (currentState) {
+                                        when (val state = serviceState) {
                                             is ImageGenerationService.GenerationState.LoadingModel -> {
                                                 CircularProgressIndicator(
                                                     color = MaterialTheme.colorScheme.primary,
@@ -316,7 +317,7 @@ fun GalleryScreenContent(
                                             }
                                             is ImageGenerationService.GenerationState.Generating -> {
                                                 LinearProgressIndicator(
-                                                    progress = currentState.progress,
+                                                    progress = { state.progress },
                                                     color = MaterialTheme.colorScheme.primary,
                                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
                                                 )
@@ -329,7 +330,7 @@ fun GalleryScreenContent(
                                                     textAlign = TextAlign.Center
                                                 )
                                                 Text(
-                                                    text = "Step: ${currentState.currentStep}/${currentState.totalSteps}",
+                                                    text = "Step: ${state.currentStep}/${state.totalSteps}",
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                                                     textAlign = TextAlign.Center
@@ -351,10 +352,9 @@ fun GalleryScreenContent(
                                             }
                                         }
                                     } else {
-                                        val pState = currentProviderState
-                                        if (pState != null) {
+                                        if (currentProviderState != null) {
                                             LinearProgressIndicator(
-                                                progress = pState.progress,
+                                                progress = { currentProviderState.progress },
                                                 color = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
                                             )
@@ -367,7 +367,7 @@ fun GalleryScreenContent(
                                                 textAlign = TextAlign.Center
                                             )
                                             Text(
-                                                text = pState.message ?: "Creating seamless tile",
+                                                text = currentProviderState.message ?: "Creating seamless tile",
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                                                 textAlign = TextAlign.Center
@@ -404,7 +404,7 @@ fun GalleryScreenContent(
                         if (file.exists() || isPreview) {
                             val bitmap = remember(entity.filePath) {
                                 if (isPreview) {
-                                    Bitmap.createBitmap(200, 300, Bitmap.Config.ARGB_8888).apply {
+                                    createBitmap(200, 300).apply {
                                         eraseColor(android.graphics.Color.DKGRAY)
                                     }
                                 } else {
@@ -507,7 +507,7 @@ fun GalleryScreenContent(
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                     } else {
-                        Icon(Icons.Default.Send, contentDescription = "Generate wallpaper")
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Generate wallpaper")
                     }
                 }
             }
@@ -518,7 +518,7 @@ fun GalleryScreenContent(
             val isPreview = LocalInspectionMode.current
             val bitmap = remember(entity.filePath) {
                 if (isPreview) {
-                    Bitmap.createBitmap(200, 300, Bitmap.Config.ARGB_8888).apply {
+                    createBitmap(200, 300).apply {
                         eraseColor(android.graphics.Color.DKGRAY)
                     }
                 } else {
@@ -544,10 +544,12 @@ fun GalleryScreenContent(
 
                             // Prompt overlay at the top
                             val previewText = entity.prompt.ifEmpty {
-                                val isMl = entity.providerId == "local_ai" || entity.filePath.contains("local_ai")
-                                val isProcedural = entity.providerId == "procedural" || entity.filePath.contains("tile_noise") || entity.filePath.contains("procedural")
-                                val isColor = entity.providerId == "random_color" || entity.filePath.contains("random_color")
-                                if (isMl) "Local AI" else if (isProcedural) "Procedural" else if (isColor) "Color" else "Pattern"
+                                when {
+                                    entity.providerId == "local_ai" || entity.filePath.contains("local_ai") -> "Local AI"
+                                    entity.providerId == "procedural" || entity.filePath.contains("tile_noise") || entity.filePath.contains("procedural") -> "Procedural"
+                                    entity.providerId == "random_color" || entity.filePath.contains("random_color") -> "Color"
+                                    else -> "Pattern"
+                                }
                             }
                             Surface(
                                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
@@ -625,15 +627,15 @@ fun GalleryScreenContent(
     }
 }
 
-private fun decodeWallpaperBitmap(path: String): android.graphics.Bitmap? {
-    val file = java.io.File(path)
+private fun decodeWallpaperBitmap(path: String): Bitmap? {
+    val file = File(path)
     if (!file.exists()) return null
     return try {
         val source = android.graphics.ImageDecoder.createSource(file)
         android.graphics.ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
             decoder.allocator = android.graphics.ImageDecoder.ALLOCATOR_SOFTWARE
         }
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         android.graphics.BitmapFactory.decodeFile(path)
     }
 }

@@ -649,6 +649,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                 }
             }
 
+            /*
             // Engine Configuration
             item {
                 Spacer(modifier = Modifier.height(24.dp))
@@ -712,6 +713,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                     }
                 }
             }
+            */
         }
     }
 }
