@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="title_settings">Налаштування</string>
-    <string name="notification_action_next">Наступна</string>
+    <string name="notification_action_retry">Ще раз</string>
+    <string name="notification_action_apply">Застосувати</string>
     <string name="notification_title_set">Нові шпалери</string>
+    <string name="notification_title_generated">Шпалери згенеровано</string>
     <string name="title_auto_wallpaper">Авто шпалери</string>
 
     <string name="pref_auto_wallpaper_enabled_title">Увімкнено</string>
+    <string name="pref_auto_apply_wallpaper_title">Застосовувати автоматично</string>
+    <string name="pref_auto_apply_wallpaper_summary">Змінювати шпалери одразу після генерації</string>
     <string name="pref_auto_wallpaper_info">Авто шпалери оновлюють шпалери за інтервалом і умовами нижче.</string>
 
     <string name="pref_category_conditions">Умови</string>

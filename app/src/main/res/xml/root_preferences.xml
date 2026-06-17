@@ -6,6 +6,13 @@
         app:key="pref_auto_wallpaper_enabled"
         app:title="@string/pref_auto_wallpaper_enabled_title" />
 
+    <SwitchPreferenceCompat
+        app:defaultValue="true"
+        app:dependency="pref_auto_wallpaper_enabled"
+        app:key="pref_auto_apply_wallpaper"
+        app:summary="@string/pref_auto_apply_wallpaper_summary"
+        app:title="@string/pref_auto_apply_wallpaper_title" />
+
     <Preference
         app:enabled="false"
         app:icon="@android:drawable/ic_dialog_info"

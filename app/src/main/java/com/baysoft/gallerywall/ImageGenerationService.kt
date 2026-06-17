@@ -42,15 +42,17 @@ class ImageGenerationService : Service() {
         const val EXTRA_PROMPT = "extra_prompt"
         const val EXTRA_MODEL_PATH = "extra_model_path"
         const val EXTRA_COLORS_HEX = "extra_colors_hex"
+        const val EXTRA_AUTO_APPLY = "extra_auto_apply"
 
         private val _state = MutableStateFlow<GenerationState>(GenerationState.Idle)
         val state: StateFlow<GenerationState> = _state.asStateFlow()
 
-        fun start(context: Context, prompt: String, modelPath: String, colorsHex: String) {
+        fun start(context: Context, prompt: String, modelPath: String, colorsHex: String, autoApply: Boolean? = null) {
             val intent = Intent(context, ImageGenerationService::class.java).apply {
                 putExtra(EXTRA_PROMPT, prompt)
                 putExtra(EXTRA_MODEL_PATH, modelPath)
                 putExtra(EXTRA_COLORS_HEX, colorsHex)
+                autoApply?.let { putExtra(EXTRA_AUTO_APPLY, it) }
             }
             context.startForegroundService(intent)
         }
@@ -69,6 +71,8 @@ class ImageGenerationService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val prompt = intent?.getStringExtra(EXTRA_PROMPT) ?: ""
         val modelPath = intent?.getStringExtra(EXTRA_MODEL_PATH) ?: ""
+
+        Log.d(TAG, "Image generation service started for prompt: $prompt")
 
         if (PromptFilter.containsInappropriateContent(prompt)) {
             Log.w(TAG, "Aborting generation: Inappropriate prompt detected.")
@@ -139,23 +143,33 @@ class ImageGenerationService : Service() {
                 val wallpaperBmp = WallpaperGenerator.renderTiledWallpaper(context, generatedTile)
 
                 // 4. Update wallpaper and database
-                GalleryWall.updateWallpaper(context, wallpaperBmp)
-
-                val file = File(context.filesDir, "wallpaper_local_ai_${System.currentTimeMillis()}.jpg")
-                FileOutputStream(file).use { out ->
-                    wallpaperBmp.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                val autoApply = if (intent?.hasExtra(EXTRA_AUTO_APPLY) == true) {
+                    intent.getBooleanExtra(EXTRA_AUTO_APPLY, true)
+                } else {
+                    settings.autoApplyWallpaper
                 }
-                val filePath = file.absolutePath
-                GalleryWall.rememberAppliedWallpaperPath(context, filePath)
 
-                val db = WallpaperDatabase.getInstance(context)
-                val repo = WallpaperRepository(db.wallpaperDao())
-                repo.addWallpaper(filePath, "local_ai", prompt)
+                if (autoApply) {
+                    GalleryWall.updateWallpaper(context, wallpaperBmp)
+                }
 
-                // Notify UI to update recents list
-                context.sendBroadcast(Intent("com.baysoft.gallerywall.WALLPAPER_SET"))
+                val filePath = GalleryWall.recordWallpaperSync(context, wallpaperBmp, applied = autoApply)
 
-                _state.value = GenerationState.Success(filePath)
+                // Notify UI to update recents list (moved inside recordWallpaperSync)
+                // context.sendBroadcast(Intent("com.baysoft.gallerywall.WALLPAPER_SET"))
+
+                if (!autoApply && settings.notification) {
+                    val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    val notification = GalleryWallNotifications.buildRefreshNotification(
+                        context, 
+                        wallpaperBmp, 
+                        filePath = filePath,
+                        isAlreadyApplied = false
+                    )
+                    notificationManager.notify(GalleryWallNotifications.NOTIFICATION_ID, notification)
+                }
+
+                _state.value = GenerationState.Success(filePath ?: "")
                 stopForeground(true)
                 stopSelf()
 

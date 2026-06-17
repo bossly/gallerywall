@@ -13,6 +13,10 @@ class Settings(private val preferences: SharedPreferences) {
     val autoWallpaperEnabled: Boolean
         get() = preferences.getBoolean(PREF_AUTO_WALLPAPER_ENABLED, false)
 
+    /** When false, wallpaper is generated but not applied until user confirms via notification. */
+    val autoApplyWallpaper: Boolean
+        get() = preferences.getBoolean(PREF_AUTO_APPLY_WALLPAPER, true)
+
     val constraintWifi: Boolean
         get() = preferences.getBoolean(PREF_CONSTRAINT_WIFI, true)
 
@@ -60,6 +64,7 @@ class Settings(private val preferences: SharedPreferences) {
     companion object {
         const val PREF_PERIOD = "pref_period"
         const val PREF_AUTO_WALLPAPER_ENABLED = "pref_auto_wallpaper_enabled"
+        const val PREF_AUTO_APPLY_WALLPAPER = "pref_auto_apply_wallpaper"
         const val PREF_CONSTRAINT_WIFI = "pref_constraint_wifi"
         const val PREF_CONSTRAINT_CHARGING = "pref_constraint_charging"
         const val PREF_CONSTRAINT_IDLE = "pref_constraint_idle"

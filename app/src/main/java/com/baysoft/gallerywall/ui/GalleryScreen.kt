@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import android.graphics.Bitmap
+import android.content.Context
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
@@ -107,31 +108,37 @@ fun GalleryScreen(modifier: Modifier = Modifier) {
             } else {
                 val resolvedPrompt = promptText
                 val colors = settings.generatedColorsHex
-                ImageGenerationService.start(context, resolvedPrompt, activeModelPath, colors)
+                ImageGenerationService.start(context, resolvedPrompt, activeModelPath, colors, autoApply = false)
             }
         } else {
             scope.launch {
                 isGenerating = true
                 currentProviderState = null
                 try {
-                    val generated = withContext(Dispatchers.IO) {
+                    val filePath = withContext(Dispatchers.IO) {
                         val bitmap = GalleryWall.createWallpaperBitmap(context) { state ->
                             scope.launch {
                                 currentProviderState = state
                             }
                         }
-                        GalleryWall.updateWallpaper(context, bitmap)
-                        val file = File(context.filesDir, "wallpaper_${providerId}_${System.currentTimeMillis()}.jpg")
-                        java.io.FileOutputStream(file).use { out ->
-                            bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
-                        }
-                        val filePath = file.absolutePath
-                        GalleryWall.rememberAppliedWallpaperPath(context, filePath)
-                        repository.addWallpaper(filePath, providerId, promptText)
-                        true
+                        
+                        // Don't apply automatically on Gallery tab
+                        val path = GalleryWall.recordWallpaperSync(context, bitmap, applied = false)
+                        
+                        // Post notification with Apply button and preview
+                        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+                        val notification = com.baysoft.gallerywall.GalleryWallNotifications.buildRefreshNotification(
+                            context,
+                            bitmap,
+                            filePath = path,
+                            isAlreadyApplied = false
+                        )
+                        notificationManager.notify(com.baysoft.gallerywall.GalleryWallNotifications.NOTIFICATION_ID, notification)
+                        
+                        path
                     }
-                    if (generated) {
-                        Toast.makeText(context, "New wallpaper generated and applied!", Toast.LENGTH_SHORT).show()
+                    if (filePath != null) {
+                        Toast.makeText(context, "New wallpaper generated! Use notification to apply.", Toast.LENGTH_LONG).show()
                     }
                 } catch (e: Exception) {
                     Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()

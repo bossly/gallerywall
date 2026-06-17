@@ -4,13 +4,17 @@
     <string name="title_settings">Settings</string>
 
     <!-- Notifications -->
-    <string name="notification_action_next">Next</string>
+    <string name="notification_action_retry">Retry</string>
+    <string name="notification_action_apply">Apply</string>
     <string name="notification_title_set">New wallpaper</string>
+    <string name="notification_title_generated">Wallpaper generated</string>
 
     <!-- Preferences / Auto Wallpaper -->
     <string name="title_auto_wallpaper">Auto Wallpaper</string>
 
     <string name="pref_auto_wallpaper_enabled_title">On</string>
+    <string name="pref_auto_apply_wallpaper_title">Apply automatically</string>
+    <string name="pref_auto_apply_wallpaper_summary">Change wallpaper immediately when automation runs</string>
     <string name="pref_auto_wallpaper_info">Auto Wallpaper will refresh your device with a new wallpaper based on the interval and conditions below.</string>
 
     <string name="pref_category_conditions">Conditions</string>

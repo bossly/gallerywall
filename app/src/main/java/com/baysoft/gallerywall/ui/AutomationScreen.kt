@@ -32,6 +32,7 @@ fun AutomationScreen(modifier: Modifier = Modifier) {
 
     // State bindings
     var autoEnabled by remember { mutableStateOf(prefs?.getBoolean(Settings.PREF_AUTO_WALLPAPER_ENABLED, false) ?: false) }
+    var autoApply by remember { mutableStateOf(prefs?.getBoolean(Settings.PREF_AUTO_APPLY_WALLPAPER, true) ?: true) }
     var promptTemplate by remember { mutableStateOf(prefs?.getString(Settings.PREF_AUTOMATION_PROMPT, Settings.DEFAULT_AUTOMATION_PROMPT) ?: Settings.DEFAULT_AUTOMATION_PROMPT) }
     var periodValue by remember { mutableStateOf(prefs?.getString(Settings.PREF_PERIOD, "1h") ?: "1s") }
     var periodUnit by remember { mutableStateOf(prefs?.getString(Settings.PREF_PERIOD_UNIT, Settings.DEFAULT_PERIOD_UNIT) ?: Settings.DEFAULT_PERIOD_UNIT) }
@@ -45,6 +46,7 @@ fun AutomationScreen(modifier: Modifier = Modifier) {
         if (!isPreview && prefs != null) {
             val editor = prefs.edit()
             editor.putBoolean(Settings.PREF_AUTO_WALLPAPER_ENABLED, autoEnabled)
+            editor.putBoolean(Settings.PREF_AUTO_APPLY_WALLPAPER, autoApply)
             editor.putString(Settings.PREF_AUTOMATION_PROMPT, promptTemplate)
             editor.putString(Settings.PREF_PERIOD, periodValue)
             editor.putString(Settings.PREF_PERIOD_UNIT, periodUnit)
@@ -68,6 +70,11 @@ fun AutomationScreen(modifier: Modifier = Modifier) {
                 val msg = if (it) "Auto-Wallpaper Enabled" else "Auto-Wallpaper Disabled"
                 Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
             }
+        },
+        autoApply = autoApply,
+        onAutoApplyChange = {
+            autoApply = it
+            saveAndReschedule()
         },
         promptTemplate = promptTemplate,
         onPromptTemplateChange = {
@@ -108,6 +115,8 @@ fun AutomationScreenContent(
     modifier: Modifier = Modifier,
     autoEnabled: Boolean,
     onAutoEnabledChange: (Boolean) -> Unit,
+    autoApply: Boolean,
+    onAutoApplyChange: (Boolean) -> Unit,
     promptTemplate: String,
     onPromptTemplateChange: (String) -> Unit,
     periodValue: String,
@@ -173,6 +182,41 @@ fun AutomationScreenContent(
                 Switch(
                     checked = autoEnabled,
                     onCheckedChange = onAutoEnabledChange
+                )
+            }
+        }
+
+        // Auto Apply Switch Card
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+            ),
+            shape = MaterialTheme.shapes.large,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .padding(20.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Apply automatically",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (autoEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    )
+                    Text(
+                        text = "Change wallpaper immediately when automation runs.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (autoEnabled) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                    )
+                }
+                Switch(
+                    checked = autoApply,
+                    onCheckedChange = onAutoApplyChange,
+                    enabled = autoEnabled
                 )
             }
         }

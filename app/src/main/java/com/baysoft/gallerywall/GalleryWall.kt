@@ -14,8 +14,10 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequest
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 
 /**
@@ -37,6 +39,12 @@ class GalleryWall {
          * progress (see [com.baysoft.gallerywall.ui.HomeFragment]).
          */
         const val ACTION_REFRESH_IDLE = "com.baysoft.gallerywall.REFRESH_IDLE"
+
+        /** Sent when user clicks "Apply" on a notification. */
+        const val ACTION_APPLY_WALLPAPER = "com.baysoft.gallerywall.APPLY_WALLPAPER"
+
+        /** Intent extra for file path to apply. */
+        const val EXTRA_FILE_PATH = "extra_file_path"
 
         /**
          * WorkManager enforces a minimum interval (~15 minutes). Call this when building periodic
@@ -103,6 +111,8 @@ class GalleryWall {
                 .setBackoffCriteria(BackoffPolicy.LINEAR, 10, TimeUnit.SECONDS)
                 .build()
 
+            Log.d(TAG, "Automation scheduled: every $clampedMinutes minutes. Next run expected in ~$clampedMinutes minutes.")
+
             wm.enqueueUniquePeriodicWork(
                 UNIQUE_WORK_NAME,
                 ExistingPeriodicWorkPolicy.UPDATE,
@@ -129,7 +139,30 @@ class GalleryWall {
 
             val provider = WallpaperProviderRegistry.get(providerId)
                 ?: WallpaperProviderRegistry.defaultProvider
-            return provider.generateBitmap(context, onStateUpdate)
+            
+            val notificationManager = if (providerId != "local_ai") {
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
+            } else null
+
+            return provider.generateBitmap(context) { state ->
+                onStateUpdate(state)
+                
+                // Show progress notification for non-AI providers (AI has its own service notification)
+                notificationManager?.let { nm ->
+                    val progress = (state.progress * 100).toInt()
+                    val notification = GalleryWallNotifications.buildProgressNotification(
+                        context,
+                        state.message ?: "Generating wallpaper...",
+                        progress = progress,
+                        max = 100
+                    )
+                    nm.notify(GalleryWallNotifications.PROGRESS_NOTIFICATION_ID, notification)
+                    
+                    if (state.progress >= 1.0f) {
+                        nm.cancel(GalleryWallNotifications.PROGRESS_NOTIFICATION_ID)
+                    }
+                }
+            }
         }
 
         fun updateWallpaper(context: Context, image: Bitmap?) {
@@ -145,32 +178,46 @@ class GalleryWall {
                 .apply()
         }
 
-        // Save wallpaper to database as recent
-        fun recordWallpaper(context: Context, image: Bitmap?) {
-            GlobalScope.launch {
-                val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-                val settings = Settings(prefs)
-                val providerId = settings.activeProviderId
-                image?.let { bmp ->
-                    val file = java.io.File(context.filesDir, "wallpaper_${providerId}_${System.currentTimeMillis()}.jpg")
-                    java.io.FileOutputStream(file).use { out ->
-                        bmp.compress(Bitmap.CompressFormat.JPEG, 95, out)
-                    }
-                    file.absolutePath
-                }?.let { filePath ->
-                    rememberAppliedWallpaperPath(context.applicationContext, filePath)
-                    val db = com.baysoft.gallerywall.data.WallpaperDatabase.getInstance(context)
-                    val repo = com.baysoft.gallerywall.data.WallpaperRepository(db.wallpaperDao())
-                    
-                    val promptStr = if (providerId == "local_ai" || providerId == "procedural") {
-                        settings.automationPrompt
-                    } else ""
-                    
-                    repo.addWallpaper(filePath, providerId, promptStr)
-
-                    // Notify UI to update recents
-                    context.sendBroadcast(Intent("com.baysoft.gallerywall.WALLPAPER_SET"))
+        /**
+         * Saves wallpaper to disk and database.
+         * @return The absolute path of the saved file.
+         */
+        suspend fun recordWallpaperSync(context: Context, image: Bitmap?, applied: Boolean = true): String? = withContext(Dispatchers.IO) {
+            val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+            val settings = Settings(prefs)
+            val providerId = settings.activeProviderId
+            val filePath = image?.let { bmp ->
+                val file = java.io.File(context.filesDir, "wallpaper_${providerId}_${System.currentTimeMillis()}.jpg")
+                java.io.FileOutputStream(file).use { out ->
+                    bmp.compress(Bitmap.CompressFormat.JPEG, 95, out)
                 }
+                file.absolutePath
+            } ?: return@withContext null
+
+            if (applied) {
+                rememberAppliedWallpaperPath(context.applicationContext, filePath)
+            }
+            val db = com.baysoft.gallerywall.data.WallpaperDatabase.getInstance(context)
+            val repo = com.baysoft.gallerywall.data.WallpaperRepository(db.wallpaperDao())
+
+            val promptStr = if (providerId == "local_ai" || providerId == "procedural") {
+                settings.automationPrompt
+            } else ""
+
+            repo.addWallpaper(filePath, providerId, promptStr)
+
+            // Notify UI to update recents
+            context.sendBroadcast(Intent("com.baysoft.gallerywall.WALLPAPER_SET"))
+            
+            Log.d(TAG, "Wallpaper generated and saved to: $filePath (Applied: $applied)")
+            
+            return@withContext filePath
+        }
+
+        // Keep compatibility if needed, but better to migrate usages
+        fun recordWallpaper(context: Context, image: Bitmap?, applied: Boolean = true) {
+            GlobalScope.launch {
+                recordWallpaperSync(context, image, applied)
             }
         }
     }

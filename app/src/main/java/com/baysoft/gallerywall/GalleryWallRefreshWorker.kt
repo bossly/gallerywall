@@ -20,6 +20,7 @@ class GalleryWallRefreshWorker(
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+        Log.d(TAG, "Automated wallpaper refresh started")
         val context = applicationContext
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
         val settings = Settings(prefs)
@@ -36,13 +37,22 @@ class GalleryWallRefreshWorker(
             return@withContext Result.retry()
         }
 
-        GalleryWall.updateWallpaper(context, bitmap)
-        GalleryWall.recordWallpaper(context, bitmap)
+        val autoApply = settings.autoApplyWallpaper
+        if (autoApply) {
+            GalleryWall.updateWallpaper(context, bitmap)
+        }
+        
+        val filePath = GalleryWall.recordWallpaperSync(context, bitmap, applied = autoApply)
 
         if (settings.notification) {
             val notificationManager =
                 context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-            val notification = GalleryWallNotifications.buildRefreshNotification(context, bitmap)
+            val notification = GalleryWallNotifications.buildRefreshNotification(
+                context, 
+                bitmap, 
+                filePath = filePath,
+                isAlreadyApplied = autoApply
+            )
             notificationManager.notify(GalleryWallNotifications.NOTIFICATION_ID, notification)
         }
 
