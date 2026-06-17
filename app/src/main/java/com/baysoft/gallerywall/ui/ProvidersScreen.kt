@@ -161,9 +161,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
     }
 
     var selectedProviderId by remember {
-        mutableStateOf(prefs?.getString(Settings.PREF_WALLPAPER_PROVIDER,
-            if (com.baysoft.gallerywall.BuildConfig.DEBUG) "random_color" else "local_ai")
-            ?: "local_ai")
+        mutableStateOf(prefs?.getString(Settings.PREF_WALLPAPER_PROVIDER, "local_ai") ?: "local_ai")
     }
 
     val allProviders = remember { com.baysoft.gallerywall.provider.WallpaperProviderRegistry.all() }

@@ -17,38 +17,35 @@ object PromptFilter {
         }
         val words = String(xorBytes).split(",")
         words.map { word ->
-            // Create a regex that allows for optional non-word characters between letters
-            // and uses word boundaries to avoid partial matches (e.g., "gorgeous")
-            val regex = word.map { it }.joinToString("\\W*") { Pattern.quote(it.toString()) }
+            // Create a regex that allows for optional non-word characters (and underscores) between letters.
+            // Each letter is mapped to a character class containing common leetspeak substitutions.
+            val regex = word.map { char ->
+                when (char) {
+                    'a' -> "[a4@]"
+                    'e' -> "[e3]"
+                    'i' -> "[i1!]"
+                    'o' -> "[o0]"
+                    's' -> "[s5\$]"
+                    't' -> "[t7]"
+                    'b' -> "[b8]"
+                    'u' -> "[u3v]"
+                    else -> Pattern.quote(char.toString())
+                }
+            }.joinToString("[\\W_]*")
             Pattern.compile("\\b$regex\\b", Pattern.CASE_INSENSITIVE)
         }
     }
 
     /**
      * Checks if the given prompt contains any inappropriate content.
-     * Before checking, it normalizes the text by replacing common leetspeak characters.
      */
     fun containsInappropriateContent(prompt: String): Boolean {
         if (prompt.isBlank()) return false
 
-        val normalizedPrompt = normalize(prompt)
+        val lowercasePrompt = prompt.lowercase()
 
         return patterns.any { pattern ->
-            pattern.matcher(normalizedPrompt).find()
+            pattern.matcher(lowercasePrompt).find()
         }
-    }
-
-    private fun normalize(text: String): String {
-        return text.lowercase()
-            .replace("0", "o")
-            .replace("1", "i")
-            .replace("3", "e")
-            .replace("4", "a")
-            .replace("5", "s")
-            .replace("7", "t")
-            .replace("8", "b")
-            .replace("@", "a")
-            .replace("$", "s")
-            .replace("!", "i")
     }
 }

@@ -3,23 +3,33 @@ package com.baysoft.gallerywall.provider
 import com.baysoft.gallerywall.BuildConfig
 
 /**
- * Compile-time registry of [WallpaperProvider] implementations.
- * In debug builds, [ColorProvider] is included and set as the default.
+ * Registry of [WallpaperProvider] implementations.
+ * Allows dynamic registration of providers (useful for UI tests).
  */
 object WallpaperProviderRegistry {
 
-    private val providers: List<WallpaperProvider> = buildList {
-        if (BuildConfig.DEBUG) {
-            add(ColorProvider)
-        }
-        add(LocalAIProvider)
+    private val providers = mutableListOf<WallpaperProvider>(LocalAIProvider)
+
+    fun all(): List<WallpaperProvider> = synchronized(providers) {
+        providers.toList()
     }
 
-    private val byId: Map<String, WallpaperProvider> = providers.associateBy { it.id }
+    fun get(id: String): WallpaperProvider? = synchronized(providers) {
+        providers.find { it.id == id }
+    }
 
-    fun all(): List<WallpaperProvider> = providers
+    /**
+     * Registers a new provider if it's not already registered.
+     */
+    fun register(provider: WallpaperProvider) = synchronized(providers) {
+        if (providers.none { it.id == provider.id }) {
+            providers.add(provider)
+        }
+    }
 
-    fun get(id: String): WallpaperProvider? = byId[id]
+    fun unregister(provider: WallpaperProvider) = synchronized(providers) {
+        providers.removeAll { it.id == provider.id }
+    }
 
     val defaultProvider: WallpaperProvider
         get() = if (BuildConfig.DEBUG) ColorProvider else LocalAIProvider

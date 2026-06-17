@@ -100,17 +100,21 @@ dependencies {
     implementation 'androidx.navigation:navigation-fragment-ktx:2.9.3'
     implementation 'androidx.navigation:navigation-ui-ktx:2.9.3'
     kapt 'androidx.room:room-compiler:2.7.2'
-    androidTestImplementation 'androidx.test.espresso:espresso-contrib:3.6.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-contrib:3.7.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
 
     // Google MediaPipe Image Generator
     implementation 'com.google.mediapipe:tasks-vision-image-generator:0.10.26.1'
 
     testImplementation 'junit:junit:4.13.2'
-    testImplementation 'androidx.test:core:1.6.1'
+    testImplementation 'androidx.test:core:1.7.0'
     testImplementation 'androidx.work:work-testing:2.10.1'
     testImplementation 'org.robolectric:robolectric:4.14.1'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
+    androidTestImplementation 'androidx.test:rules:1.7.0'
     androidTestImplementation 'tools.fastlane:screengrab:2.1.1'
+    androidTestImplementation platform('androidx.compose:compose-bom:2024.12.01')
+    androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
+    debugImplementation 'androidx.compose.ui:ui-test-manifest'
 }

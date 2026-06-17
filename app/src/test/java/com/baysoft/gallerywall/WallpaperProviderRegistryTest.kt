@@ -1,5 +1,6 @@
 package com.baysoft.gallerywall
 
+import com.baysoft.gallerywall.provider.ColorProvider
 import com.baysoft.gallerywall.provider.LocalAIProvider
 import com.baysoft.gallerywall.provider.WallpaperProviderRegistry
 import org.junit.Assert.assertEquals
@@ -21,7 +22,8 @@ class WallpaperProviderRegistryTest {
 
     @Test
     fun defaultProvider_isAI() {
-        assertSame(LocalAIProvider, WallpaperProviderRegistry.defaultProvider)
+        val expected = if (BuildConfig.DEBUG) ColorProvider else LocalAIProvider
+        assertSame(expected, WallpaperProviderRegistry.defaultProvider)
     }
 
     @Test

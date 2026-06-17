@@ -30,6 +30,9 @@ class WallpaperProviderGenerateTest {
 
     @Test
     fun localAIProvider_throwsException_whenNoModelLoaded() {
+        PreferenceManager.getDefaultSharedPreferences(context).edit()
+            .putString(Settings.PREF_WALLPAPER_PROVIDER, "local_ai")
+            .commit()
         assertThrows(IllegalStateException::class.java) {
             GalleryWall.createWallpaperBitmap(context)
         }

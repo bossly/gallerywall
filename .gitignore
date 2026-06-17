@@ -1,10 +1,23 @@
-*.iml
-.gradle
+# Build artifacts
 **/build
-/build
-/captures
+**/captures
+
+# Gradle
+.gradle
+.gradle_home/
+local.properties
+
+# IntelliJ
 **/.idea
-/local.properties
+*.iml
+.kotlin/**
+
+# Other
+.DS_Store
+.externalNativeBuild
+.cxx
+**/metadata/android/screenshots.html
+**/report.xml
 .DS_Store
 .externalNativeBuild
 .cxx
