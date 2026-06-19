@@ -78,7 +78,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                 id = "stable_diffusion_1_5",
                 name = "Stable Diffusion v1.5 (Lite)",
                 description = "On-device Stable Diffusion v1.5 text-to-image model. Zipped package contains pre-converted sub-model components optimized for MediaPipe Tasks Vision.",
-                size = "1.2 GB",
+                size = "1.8 GB",
                 downloadUrl = "https://github.com/bossly/gallerywall/releases/download/2.3.1/stable_diffusion_v1_5.zip",
                 sha256 = "56680bed991bc2fe5785504d3bfaa4ce495b62f0535c7f3b72eb206ef09cfcf4"
             ),
