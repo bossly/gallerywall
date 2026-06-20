@@ -14,6 +14,12 @@ For a better experience, while using our Service, I may require you to provide u
 
 The app does use third-party services that may collect information used to identify you.
 
+**On-Device AI Wallpaper Generation (Local-First)**
+
+Beginning with Version 3.0, GalleryWall provides a generative wallpaper feature that utilizes a local, on-device artificial intelligence model (such as Stable Diffusion). 
+*   **Local Processing:** All image generation inference is performed locally on your device. The prompts you input and the generated wallpaper images are processed and stored strictly on your device. We do not collect, store, or transmit your prompts, generated images, or model configuration data to our servers or any third parties.
+*   **Model Downloads:** The app allows you to download AI models from remote third-party repositories (such as Hugging Face or GitHub) to your device. When downloading these models, the app establishes direct network connections to these third-party platforms. Your interaction with these platforms is subject to their respective privacy policies.
+
 Link to the privacy policy of third-party service providers used by the app
 
 *   [Google Play Services](https://www.google.com/policies/privacy/)

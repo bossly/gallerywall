@@ -4,19 +4,32 @@ on:
   push:
     tags:
       - '*'
+  workflow_dispatch:
 
 jobs:
   build:
-    name: Create Release
+    name: Build and Deploy
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: set up JDK 17
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v4
         with:
-          java-version: 17
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Environment
+        run: |
+          VERSION_NAME=$(grep "versionName" app/build.gradle | head -1 | awk -F'\"' '{print $2}')
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "LANE=beta" >> $GITHUB_ENV
+            echo "APP_VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
+          else
+            echo "LANE=deploy" >> $GITHUB_ENV
+            echo "APP_VERSION_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
+          fi
 
       - name: Create release.keystore
         env:
@@ -32,14 +45,13 @@ jobs:
       - name: Publish to Google Play
         uses: maierj/fastlane-action@v3.1.0
         env:
-          PIXABAY_API: ${{ secrets.PIXABAY_API }}
           APP_SIGN_KEYSTORE_PATH: /tmp/release.keystore
           APP_SIGN_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           APP_SIGN_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           APP_SIGN_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           APP_VERSION_CODE: ${{ github.run_number }}
-          APP_VERSION_NAME: ${{ github.ref_name }}
+          APP_VERSION_NAME: ${{ env.APP_VERSION_NAME }}
           SUPPLY_JSON_KEY_DATA: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
         with:
-          lane: deploy
+          lane: ${{ env.LANE }}
           subdirectory: fastlane

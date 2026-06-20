@@ -1,16 +1,70 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="title_settings">Налаштування</string>
-    <string name="notification_action_next">Наступна</string>
-    <string name="notification_action_open">Завантажити</string>
+    <string name="notification_action_retry">Ще раз</string>
+    <string name="notification_action_apply">Застосувати</string>
     <string name="notification_title_set">Нові шпалери</string>
-    <string name="pref_query_title">Шукати</string>
-    <string name="pref_query_default">кіт</string>
-    <string name="pref_period_title">Період оновлення</string>
-    <string name="title_wifi_only">Тільки при Wifi</string>
-    <string name="summary_wifi_on">Оновлювати тільки через Wifi</string>
-    <string name="summary_wifi_off">Оновлювати при будь якому підключені</string>
+    <string name="notification_title_generated">Шпалери згенеровано</string>
+    <string name="title_auto_wallpaper">Авто шпалери</string>
+
+    <string name="pref_auto_wallpaper_enabled_title">Увімкнено</string>
+    <string name="pref_auto_apply_wallpaper_title">Застосовувати автоматично</string>
+    <string name="pref_auto_apply_wallpaper_summary">Змінювати шпалери одразу після генерації</string>
+    <string name="pref_auto_wallpaper_info">Авто шпалери оновлюють шпалери за інтервалом і умовами нижче.</string>
+
+    <string name="pref_category_conditions">Умови</string>
+    <string name="pref_constraint_wifi_title">Через Wi‑Fi</string>
+    <string name="pref_constraint_wifi_summary">Потрібне підключення до безлімітної мережі</string>
+    <string name="pref_constraint_charging_title">Зарядка</string>
+    <string name="pref_constraint_charging_summary">Підключіть пристрій до живлення</string>
+    <string name="pref_constraint_idle_title">Бездіяльність</string>
+    <string name="pref_constraint_idle_summary">Пристрій має бути неактивним</string>
+    <string name="pref_constraint_battery_low_title">Енергозбереження</string>
+    <string name="pref_constraint_battery_low_summary">Вимкнути генерацію, коли заряд батареї менше 15%</string>
+
+    <string name="pref_interval_title">Інтервал</string>
+    <string name="pref_period_summary_format">Змінювати шпалери кожні: %1$s</string>
+
+    <string name="pref_category_source">Джерело</string>
+    <string name="pref_wallpaper_source_title">Джерело шпалер</string>
+    <string name="pref_wallpaper_source_summary_format">Поточне джерело: %1$s</string>
+
+    <string name="pref_category_options">Опції</string>
+
     <string name="pref_notification_title">Показувати повідомлення</string>
     <string name="pref_notification_off">Оновлювати шпалери тихо</string>
     <string name="pref_notification_on">Коли нові шпалери встановлені</string>
+
+    <string name="pref_filter_title">Фільтр постобробки</string>
+    <string name="filter_none">Немає</string>
+    <string name="filter_bw">Чорно-білий</string>
+    <string name="filter_sepia">Сепія</string>
+    <string name="filter_invert">Інверсія</string>
+    <string name="filter_blur">Розмиття</string>
+
+    <string name="tab_wallpapers">Шпалери</string>
+    <string name="tab_providers">Джерела</string>
+    <string name="tab_settings">Налаштування</string>
+
+    <string name="provider_selected">Джерело шпалер оновлено</string>
+    <string name="provider_configure">Налаштувати</string>
+    <string name="provider_preview_description">Попередній перегляд шпалер</string>
+    <string name="provider_preview_thumbnail">Попередній перегляд джерела</string>
+
+    <string name="color_hex_hint">Hex (#RRGGBB)</string>
+    <string name="color_rgb_sliders">RGB</string>
+
+    <string name="delete_wallpaper">Видалити</string>
+
+    <string name="wallpaper_current_set">Зараз встановлено як шпалери</string>
+
+    <string name="menu_help">Допомога</string>
+    <string name="settings_help_title">Авто шпалери</string>
+    <string name="settings_help_message">Увімкніть Авто шпалери для оновлення за розкладом. Інтервал задає частоту. Умови відкладають оновлення, доки їх не виконано (наприклад лише через Wi‑Fi). Оберіть процедурний візерунок або локальний ШІ в джерелі шпалер (вкладка Джерела).</string>
+
+    <!-- Tiling and AI Providers -->
+    <string name="provider_procedural_title">Процедурний візерунок</string>
+    <string name="provider_procedural_summary">Генеруйте красиві безшовні геометричні візерунки Memphis та мозаїку з каменю локально.</string>
+    <string name="provider_ai_title">Локальний ШІ-генератор</string>
+    <string name="provider_ai_summary">Створюйте чудові піксельні шпалери повністю офлайн за текстовими підказками за допомогою локальних моделей ШІ.</string>
 </resources>

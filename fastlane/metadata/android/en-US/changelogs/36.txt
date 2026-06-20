@@ -1,0 +1,4 @@
+- Introduced on-device generative AI wallpaper creation (Stable Diffusion v1.5).
+- New 3-tab layout: Gallery, Providers, and Automation.
+- Direct Boot support to resume automation immediately after device restart.
+- Completely open-source, ad-free, and analytics-free.

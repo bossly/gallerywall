@@ -1,37 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <PreferenceCategory>
+    <SwitchPreferenceCompat
+        app:defaultValue="false"
+        app:key="pref_auto_wallpaper_enabled"
+        app:title="@string/pref_auto_wallpaper_enabled_title" />
 
-        <EditTextPreference
-            app:defaultValue="@string/pref_query_default"
-            app:key="pref_query"
-            app:title="@string/pref_query_title"
-            app:icon="@drawable/ic_search"
-            app:useSimpleSummaryProvider="true" />
+    <SwitchPreferenceCompat
+        app:defaultValue="true"
+        app:dependency="pref_auto_wallpaper_enabled"
+        app:key="pref_auto_apply_wallpaper"
+        app:summary="@string/pref_auto_apply_wallpaper_summary"
+        app:title="@string/pref_auto_apply_wallpaper_title" />
 
-        <ListPreference
-            app:defaultValue="0"
-            app:entries="@array/period_entries"
-            app:entryValues="@array/period_values"
-            app:icon="@drawable/ic_period"
-            app:key="pref_period"
-            app:title="@string/pref_period_title"
-            app:useSimpleSummaryProvider="true" />
+    <Preference
+        app:enabled="false"
+        app:icon="@android:drawable/ic_dialog_info"
+        app:key="pref_auto_wallpaper_info"
+        app:selectable="false"
+        app:shouldDisableView="false"
+        app:summary="@string/pref_auto_wallpaper_info" />
+
+    <PreferenceCategory app:title="@string/pref_category_conditions">
+
+        <CheckBoxPreference
+            app:defaultValue="true"
+            app:icon="@drawable/ic_wifi"
+            app:key="pref_constraint_wifi"
+            app:summary="@string/pref_constraint_wifi_summary"
+            app:title="@string/pref_constraint_wifi_title" />
+
+        <CheckBoxPreference
+            app:defaultValue="false"
+            app:key="pref_constraint_charging"
+            app:summary="@string/pref_constraint_charging_summary"
+            app:title="@string/pref_constraint_charging_title" />
+
+        <CheckBoxPreference
+            app:defaultValue="false"
+            app:key="pref_constraint_idle"
+            app:summary="@string/pref_constraint_idle_summary"
+            app:title="@string/pref_constraint_idle_title" />
+
+        <CheckBoxPreference
+            app:defaultValue="true"
+            app:key="pref_constraint_battery_low"
+            app:summary="@string/pref_constraint_battery_low_summary"
+            app:title="@string/pref_constraint_battery_low_title" />
+
+    </PreferenceCategory>
+
+    <ListPreference
+        app:defaultValue="360"
+        app:entries="@array/period_entries"
+        app:entryValues="@array/period_values"
+        app:icon="@drawable/ic_period"
+        app:key="pref_period"
+        app:title="@string/pref_interval_title"
+        app:useSimpleSummaryProvider="false" />
+
+    <PreferenceCategory app:title="@string/pref_category_source">
+
+        <Preference
+            app:icon="@drawable/ic_play_gray_32"
+            app:key="pref_wallpaper_source_nav"
+            app:title="@string/pref_wallpaper_source_title" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/pref_category_options">
 
         <SwitchPreferenceCompat
+            app:defaultValue="true"
             app:icon="@drawable/ic_notification"
             app:key="pref_notification"
-            app:defaultValue="true"
             app:summaryOff="@string/pref_notification_off"
             app:summaryOn="@string/pref_notification_on"
             app:title="@string/pref_notification_title" />
 
-        <SwitchPreferenceCompat
-            app:icon="@drawable/ic_wifi"
-            app:key="pref_wifi"
-            app:summaryOff="@string/summary_wifi_off"
-            app:summaryOn="@string/summary_wifi_on"
-            app:title="@string/title_wifi_only" />
+        <ListPreference
+            app:defaultValue="none"
+            app:entries="@array/filter_entries"
+            app:entryValues="@array/filter_values"
+            app:key="pref_post_processing_filter"
+            app:title="@string/pref_filter_title"
+            app:useSimpleSummaryProvider="true" />
 
     </PreferenceCategory>
 

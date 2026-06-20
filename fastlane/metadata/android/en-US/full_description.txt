@@ -1,5 +1,20 @@
-Great application to refresh your working desktop with a beautiful picture. It refreshes every time when you unlock your phone, even if you just open an application.
+Transform your device with GalleryWall, the ultimate wallpaper automation engine. Tired of the same old background? GalleryWall uses advanced AI to generate and rotate high-fidelity art that matches your personal style, ensuring your phone always feels fresh and inspiring.
 
-You can set any text and application understands what picture you want to see (E.g.: "tech", "flowers", "girls", "babes"). You don't need to worry about battery usage because the application wakes only once an hour and uses the latest API system for that.
+Key Features:
+
+✨ Seamless Automation: Set it and forget it. Schedule wallpaper rotations every hour, day, or week.
+
+🤖 AI-Powered Creativity: Use smart prompts like "pastel floral patterns" or "minimalist landscapes" to guide the generator.
+
+🖼️ Historical Gallery: Browse and re-apply your favorite previously generated masterpieces.
+
+🔋 Efficiency First: Smart execution constraints ensure updates only happen on Wi-Fi or while charging to preserve your battery.
+
+🎨 Premium Quality: High-resolution, vertically-optimized art tailored specifically for your screen.
+
+Ready to reimagine your gallery? Download GalleryWall today and let AI curate your digital world.
+
+Keywords:
+wallpaper,AI art,automation,background,generator,minimalist,pattern,gallery,theme,auto-switch
 
 This application is open source: https://github.com/bossly/gallerywall

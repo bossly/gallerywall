@@ -1,14 +1,23 @@
 package com.baysoft.gallerywall
 
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import com.baysoft.gallerywall.ui.MainScreen
+import com.baysoft.gallerywall.ui.theme.GalleryWallTheme
 
-
-class MainActivity : AppCompatActivity() {
+/**
+ * Main application Entry Activity. Launches fully themed Material 3 Jetpack Compose UI.
+ */
+class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        
+        setContent {
+            GalleryWallTheme {
+                MainScreen()
+            }
+        }
     }
-
 }

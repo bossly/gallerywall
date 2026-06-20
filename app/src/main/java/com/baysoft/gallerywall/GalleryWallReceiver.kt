@@ -1,69 +1,81 @@
 package com.baysoft.gallerywall
 
+import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.DataSource
-import com.bumptech.glide.load.engine.GlideException
-import com.bumptech.glide.request.RequestListener
-import com.bumptech.glide.request.target.Target
+import android.graphics.BitmapFactory
+import android.util.Log
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
+/**
+ * Handles [Intent.ACTION_BOOT_COMPLETED] by reinstalling WorkManager periodic work via [GalleryWall.schedule],
+ * and explicit refresh intents that generate and apply a new wallpaper from settings.
+ */
 class GalleryWallReceiver : BroadcastReceiver() {
 
     companion object {
-        private const val EXTRA_URL = "image.url"
+        fun updateIntent(context: Context): Intent =
+            Intent(context, GalleryWallReceiver::class.java)
 
-        fun updateIntent(context: Context, imageUrl: String?): Intent {
-            val intent = Intent(context, GalleryWallReceiver::class.java)
-            imageUrl?.let {
-                intent.putExtra(EXTRA_URL, it)
+        fun applyIntent(context: Context, filePath: String): Intent =
+            Intent(context, GalleryWallReceiver::class.java).apply {
+                action = GalleryWall.ACTION_APPLY_WALLPAPER
+                putExtra(GalleryWall.EXTRA_FILE_PATH, filePath)
             }
-            return intent
-        }
     }
 
     override fun onReceive(context: Context?, intent: Intent?) {
-        val photo = intent?.getStringExtra(EXTRA_URL)
-
         when (intent?.action) {
             Intent.ACTION_BOOT_COMPLETED -> {
-                // device restarted, we need to reschedule events
                 context?.let {
                     GalleryWall.schedule(it)
                 }
             }
-        }
-
-        context?.let {
-            GalleryAppWidget.updateLoading(it)
-
-            GlobalScope.launch {
-                val imageUrl = photo ?: GalleryWall.fetchImageURL(it)
-
-                Glide.with(it).asBitmap().load(imageUrl)
-                        .addListener(object : RequestListener<Bitmap> {
-                            override fun onLoadFailed(
-                                    e: GlideException?, model: Any?,
-                                    target: Target<Bitmap>?, isFirstResource: Boolean
-                            ): Boolean {
-                                GalleryAppWidget.updateLoaded(it)
-                                return false
+            GalleryWall.ACTION_APPLY_WALLPAPER -> {
+                val filePath = intent.getStringExtra(GalleryWall.EXTRA_FILE_PATH) ?: return
+                context?.let { ctx ->
+                    GlobalScope.launch {
+                        try {
+                            val bitmap = BitmapFactory.decodeFile(filePath)
+                            if (bitmap != null) {
+                                GalleryWall.updateWallpaper(ctx, bitmap)
+                                GalleryWall.rememberAppliedWallpaperPath(ctx, filePath)
+                                ctx.sendBroadcast(Intent("com.baysoft.gallerywall.WALLPAPER_SET"))
+                                Log.i("GalleryWallReceiver", "Wallpaper applied from notification: $filePath")
+                                
+                                // Dismiss notification after Apply
+                                val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                                nm.cancel(GalleryWallNotifications.NOTIFICATION_ID)
                             }
+                        } catch (e: Exception) {
+                            Log.e("GalleryWallReceiver", "Failed to apply wallpaper from file", e)
+                        }
+                    }
+                }
+            }
+            else -> {
+                context?.let { ctx ->
+                    val handler = CoroutineExceptionHandler { _, e ->
+                        Log.e("GalleryWallReceiver", "refresh failed", e)
+                        ctx.sendBroadcast(Intent(GalleryWall.ACTION_REFRESH_IDLE))
+                    }
+                    GlobalScope.launch(handler) {
+                        // Dismiss notification before starting new generation (Retry)
+                        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                        nm.cancel(GalleryWallNotifications.NOTIFICATION_ID)
 
-                            override fun onResourceReady(
-                                    resource: Bitmap?, model: Any?, target: Target<Bitmap>?,
-                                    dataSource: DataSource?, isFirstResource: Boolean
-                            ): Boolean {
-                                // change wallpaper
-                                GalleryWall.updateWallpaper(it, resource)
-                                GalleryAppWidget.updateLoaded(it)
-                                return false
-                            }
-                        }).submit()
+                        val bitmap = GalleryWall.createWallpaperBitmap(ctx)
+                        if (bitmap == null) {
+                            ctx.sendBroadcast(Intent(GalleryWall.ACTION_REFRESH_IDLE))
+                            return@launch
+                        }
+                        GalleryWall.updateWallpaper(ctx, bitmap)
+                        GalleryWall.recordWallpaper(ctx, bitmap)
+                    }
+                }
             }
         }
     }

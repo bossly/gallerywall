@@ -1,29 +1,25 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.compose'
     id 'androidx.navigation.safeargs.kotlin'
-}
-
-Properties properties = new Properties()
-if (rootProject.file("local.properties").exists()) {
-    properties.load(rootProject.file("local.properties").newDataInputStream())
+    id 'kotlin-kapt'
 }
 
 android {
     namespace 'com.baysoft.gallerywall'
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.baysoft.gallerywall"
-        minSdk 35
-        compileSdk 36
-        versionCode 35
-        versionName "2.3.0"
+        minSdk 31
+        targetSdk 36
+        versionCode 37
+        versionName "3.0.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-
-        def pixabay_key = System.getenv("PIXABAY_API") ?: properties.getProperty('api_pixabay')
-        buildConfigField("String", "PIXABAY_API", "\"$pixabay_key\"")
     }
+
     buildTypes {
         release {
             minifyEnabled true
@@ -40,16 +36,55 @@ android {
     kotlinOptions {
         jvmTarget = '17'
     }
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+        }
+    }
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+        resources {
+            excludes += '/META-INF/INDEX.LIST'
+            excludes += 'google/protobuf/*.proto'
+            excludes += 'google/protobuf/compiler/*.proto'
+        }
+    }
     buildFeatures {
         viewBinding true
         dataBinding true
         buildConfig true
+        compose true
+    }
+    aaptOptions {
+        noCompress 'tflite'
     }
 }
 
-def retrofitVersion = '2.9.0'
+configurations.all {
+    resolutionStrategy {
+        force 'com.google.protobuf:protobuf-java:3.25.3'
+        dependencySubstitution {
+            substitute module('com.google.protobuf:protobuf-javalite') using module('com.google.protobuf:protobuf-java:3.25.3')
+        }
+    }
+}
 
 dependencies {
+    // Jetpack Compose
+    implementation platform('androidx.compose:compose-bom:2024.12.01')
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-graphics'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.activity:activity-compose:1.9.3'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7'
+    implementation 'androidx.navigation:navigation-compose:2.8.5'
+    implementation 'androidx.compose.runtime:runtime-livedata'
+    implementation 'io.coil-kt:coil-compose:2.6.0'
+
     implementation 'androidx.preference:preference-ktx:1.2.0'
     implementation 'androidx.core:core-ktx:1.16.0'
     implementation 'androidx.appcompat:appcompat:1.7.0'
@@ -57,15 +92,30 @@ dependencies {
     implementation 'com.google.android.material:material:1.12.0'
 
     // 3rd party
-    implementation "com.squareup.retrofit2:retrofit:$retrofitVersion"
-    implementation "com.squareup.retrofit2:converter-gson:$retrofitVersion"
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1'
     implementation 'com.github.bumptech.glide:glide:4.11.0'
-    androidTestImplementation 'androidx.test.espresso:espresso-contrib:3.6.1'
-    annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
+    implementation 'androidx.room:room-common-jvm:2.7.2'
+    implementation 'androidx.room:room-ktx:2.7.2'
+    implementation 'androidx.room:room-runtime:2.7.2'
+    implementation 'androidx.work:work-runtime-ktx:2.10.1'
+    implementation 'androidx.navigation:navigation-fragment-ktx:2.9.3'
+    implementation 'androidx.navigation:navigation-ui-ktx:2.9.3'
+    kapt 'androidx.room:room-compiler:2.7.2'
+    androidTestImplementation 'androidx.test.espresso:espresso-contrib:3.7.0'
+    kapt 'com.github.bumptech.glide:compiler:4.11.0'
+
+    // Google MediaPipe Image Generator
+    implementation 'com.google.mediapipe:tasks-vision-image-generator:0.10.26.1'
 
     testImplementation 'junit:junit:4.13.2'
+    testImplementation 'androidx.test:core:1.7.0'
+    testImplementation 'androidx.work:work-testing:2.10.1'
+    testImplementation 'org.robolectric:robolectric:4.14.1'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
+    androidTestImplementation 'androidx.test:rules:1.7.0'
     androidTestImplementation 'tools.fastlane:screengrab:2.1.1'
+    androidTestImplementation platform('androidx.compose:compose-bom:2024.12.01')
+    androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
+    debugImplementation 'androidx.compose.ui:ui-test-manifest'
 }
