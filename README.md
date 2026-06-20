@@ -30,6 +30,8 @@ Starting with **Version 3.0**, GalleryWall has pivoted to leverage a **generativ
   - Scaling and styling options: **Fit**, **Fill**, and **Seamless Pattern Tile**.
 - **Seamless repeating patterns**:
   - Applying a Gradient Map (Half-Cosine falloff filter) to the edges of the Bitmap scales down the image's opacity radially toward the borders. This eliminates the visible hard stitching line or seam, allowing any generated image to tile seamlessly as a background.
+- Direct boot support (immediately active after device restart)
+- No ads and no analytics.
 
 ## Contribution
 

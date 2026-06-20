@@ -40,6 +40,13 @@
     <string name="pref_notification_off">Deliver new wallpaper silently</string>
     <string name="pref_notification_on">When new wallpaper set</string>
 
+    <string name="pref_filter_title">Post-processing filter</string>
+    <string name="filter_none">None</string>
+    <string name="filter_bw">Black &amp; White</string>
+    <string name="filter_sepia">Sepia</string>
+    <string name="filter_invert">Invert</string>
+    <string name="filter_blur">Blur</string>
+
     <string name="tab_wallpapers">Wallpapers</string>
     <string name="tab_providers">Providers</string>
     <string name="tab_settings">Settings</string>

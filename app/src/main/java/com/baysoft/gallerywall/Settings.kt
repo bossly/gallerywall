@@ -51,6 +51,9 @@ class Settings(private val preferences: SharedPreferences) {
     val automationPrompt: String
         get() = preferences.getString(PREF_AUTOMATION_PROMPT, DEFAULT_AUTOMATION_PROMPT) ?: DEFAULT_AUTOMATION_PROMPT
 
+    val postProcessingFilter: String
+        get() = preferences.getString(PREF_POST_PROCESSING_FILTER, "none") ?: "none"
+
     val activeModelPath: String?
         get() = preferences.getString(PREF_ACTIVE_MODEL_PATH, null)
 
@@ -76,6 +79,7 @@ class Settings(private val preferences: SharedPreferences) {
         const val PREF_LAST_APPLIED_WALLPAPER_PATH = "pref_last_applied_wallpaper_path"
         
         const val PREF_AUTOMATION_PROMPT = "pref_automation_prompt"
+        const val PREF_POST_PROCESSING_FILTER = "pref_post_processing_filter"
         const val PREF_ACTIVE_MODEL_PATH = "pref_active_model_path"
         const val PREF_PERIOD_UNIT = "pref_period_unit"
         const val PREF_SCALE_FACTOR = "pref_scale_factor"

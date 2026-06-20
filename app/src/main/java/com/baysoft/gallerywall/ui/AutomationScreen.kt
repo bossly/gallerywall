@@ -40,6 +40,7 @@ fun AutomationScreen(modifier: Modifier = Modifier) {
     var constraintWifi by remember { mutableStateOf(prefs?.getBoolean(Settings.PREF_CONSTRAINT_WIFI, true) ?: true) }
     var constraintCharging by remember { mutableStateOf(prefs?.getBoolean(Settings.PREF_CONSTRAINT_CHARGING, false) ?: false) }
     var constraintIdle by remember { mutableStateOf(prefs?.getBoolean(Settings.PREF_CONSTRAINT_IDLE, false) ?: false) }
+    var postProcessingFilter by remember { mutableStateOf(prefs?.getString(Settings.PREF_POST_PROCESSING_FILTER, "none") ?: "none") }
 
     // Helper to persist and reschedule WorkManager tasks
     val saveAndReschedule = {
@@ -53,6 +54,7 @@ fun AutomationScreen(modifier: Modifier = Modifier) {
             editor.putBoolean(Settings.PREF_CONSTRAINT_WIFI, constraintWifi)
             editor.putBoolean(Settings.PREF_CONSTRAINT_CHARGING, constraintCharging)
             editor.putBoolean(Settings.PREF_CONSTRAINT_IDLE, constraintIdle)
+            editor.putString(Settings.PREF_POST_PROCESSING_FILTER, postProcessingFilter)
             editor.apply()
             
             // Reschedule WorkManager
@@ -105,6 +107,11 @@ fun AutomationScreen(modifier: Modifier = Modifier) {
         onConstraintIdleChange = {
             constraintIdle = it
             saveAndReschedule()
+        },
+        postProcessingFilter = postProcessingFilter,
+        onPostProcessingFilterChange = {
+            postProcessingFilter = it
+            saveAndReschedule()
         }
     )
 }
@@ -128,7 +135,9 @@ fun AutomationScreenContent(
     constraintCharging: Boolean,
     onConstraintChargingChange: (Boolean) -> Unit,
     constraintIdle: Boolean,
-    onConstraintIdleChange: (Boolean) -> Unit
+    onConstraintIdleChange: (Boolean) -> Unit,
+    postProcessingFilter: String,
+    onPostProcessingFilterChange: (String) -> Unit
 ) {
     val focusManager = LocalFocusManager.current
 
@@ -349,6 +358,61 @@ fun AutomationScreenContent(
                         inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
                     )
                 )
+            }
+        }
+
+        // Post-processing Filter Card
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+            shape = MaterialTheme.shapes.large,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Post-processing Filter",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Apply a visual filter to the generated wallpaper.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+
+                var filterDropdownExpanded by remember { mutableStateOf(false) }
+                val filterLabels = mapOf(
+                    "none" to "None",
+                    "bw" to "Black & White",
+                    "sepia" to "Sepia",
+                    "invert" to "Invert",
+                    "blur" to "Blur"
+                )
+
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(
+                        onClick = { filterDropdownExpanded = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Text(text = "Filter: ${filterLabels[postProcessingFilter] ?: "None"}")
+                    }
+                    DropdownMenu(
+                        expanded = filterDropdownExpanded,
+                        onDismissRequest = { filterDropdownExpanded = false },
+                        modifier = Modifier.fillMaxWidth(0.9f)
+                    ) {
+                        filterLabels.forEach { (value, label) ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                onClick = {
+                                    onPostProcessingFilterChange(value)
+                                    filterDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
         }
 

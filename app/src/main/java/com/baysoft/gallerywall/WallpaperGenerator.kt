@@ -3,8 +3,11 @@ package com.baysoft.gallerywall
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import android.graphics.LinearGradient
 import android.graphics.Paint
+import android.graphics.RenderEffect
 import android.graphics.Shader
 
 /**
@@ -90,6 +93,52 @@ object WallpaperGenerator {
     private fun gradientPositions(n: Int): FloatArray {
         if (n < 2) return floatArrayOf(0f, 1f)
         return FloatArray(n) { i -> i.toFloat() / (n - 1) }
+    }
+
+    /** Applies post-processing filter to the [bitmap]. */
+    fun applyPostProcessing(bitmap: Bitmap, filter: String): Bitmap {
+        return when (filter) {
+            "bw" -> applyColorMatrix(bitmap, ColorMatrix().apply { setSaturation(0f) })
+            "sepia" -> applyColorMatrix(bitmap, ColorMatrix().apply {
+                setSaturation(0f)
+                postConcat(ColorMatrix(floatArrayOf(
+                    1f, 0f, 0f, 0f, 30f,
+                    0f, 1f, 0f, 0f, 0f,
+                    0f, 0f, 0.8f, 0f, 0f,
+                    0f, 0f, 0f, 1f, 0f
+                )))
+            })
+            "invert" -> applyColorMatrix(bitmap, ColorMatrix(floatArrayOf(
+                -1f, 0f, 0f, 0f, 255f,
+                0f, -1f, 0f, 0f, 255f,
+                0f, 0f, -1f, 0f, 255f,
+                0f, 0f, 0f, 1f, 0f
+            )))
+            "blur" -> {
+                val outBmp = Bitmap.createBitmap(bitmap.width, bitmap.height, bitmap.config ?: Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(outBmp)
+                val paint = Paint()
+                try {
+                    val method = paint.javaClass.getMethod("setRenderEffect", RenderEffect::class.java)
+                    method.invoke(paint, RenderEffect.createBlurEffect(15f, 15f, Shader.TileMode.CLAMP))
+                } catch (e: Exception) {
+                    // Fallback or ignore if reflection fails
+                }
+                canvas.drawBitmap(bitmap, 0f, 0f, paint)
+                outBmp
+            }
+            else -> bitmap
+        }
+    }
+
+    private fun applyColorMatrix(bitmap: Bitmap, matrix: ColorMatrix): Bitmap {
+        val outBmp = Bitmap.createBitmap(bitmap.width, bitmap.height, bitmap.config ?: Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(outBmp)
+        val paint = Paint().apply {
+            colorFilter = ColorMatrixColorFilter(matrix)
+        }
+        canvas.drawBitmap(bitmap, 0f, 0f, paint)
+        return outBmp
     }
 }
 

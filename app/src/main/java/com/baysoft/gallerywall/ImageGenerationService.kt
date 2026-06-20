@@ -140,9 +140,16 @@ class ImageGenerationService : Service() {
                     rawTile
                 }
 
-                val wallpaperBmp = WallpaperGenerator.renderTiledWallpaper(context, generatedTile)
+                val tiledBmp = WallpaperGenerator.renderTiledWallpaper(context, generatedTile)
+                
+                // 4. Apply post-processing filter
+                val wallpaperBmp = if (settings.postProcessingFilter != "none") {
+                    WallpaperGenerator.applyPostProcessing(tiledBmp, settings.postProcessingFilter)
+                } else {
+                    tiledBmp
+                }
 
-                // 4. Update wallpaper and database
+                // 5. Update wallpaper and database
                 val autoApply = if (intent?.hasExtra(EXTRA_AUTO_APPLY) == true) {
                     intent.getBooleanExtra(EXTRA_AUTO_APPLY, true)
                 } else {

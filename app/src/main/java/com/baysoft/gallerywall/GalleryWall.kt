@@ -144,7 +144,7 @@ class GalleryWall {
                 context.getSystemService(Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
             } else null
 
-            return provider.generateBitmap(context) { state ->
+            val rawBitmap = provider.generateBitmap(context) { state ->
                 onStateUpdate(state)
                 
                 // Show progress notification for non-AI providers (AI has its own service notification)
@@ -162,6 +162,12 @@ class GalleryWall {
                         nm.cancel(GalleryWallNotifications.PROGRESS_NOTIFICATION_ID)
                     }
                 }
+            }
+
+            return if (settings.postProcessingFilter != "none") {
+                WallpaperGenerator.applyPostProcessing(rawBitmap, settings.postProcessingFilter)
+            } else {
+                rawBitmap
             }
         }
 

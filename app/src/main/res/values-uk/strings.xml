@@ -35,6 +35,13 @@
     <string name="pref_notification_off">Оновлювати шпалери тихо</string>
     <string name="pref_notification_on">Коли нові шпалери встановлені</string>
 
+    <string name="pref_filter_title">Фільтр постобробки</string>
+    <string name="filter_none">Немає</string>
+    <string name="filter_bw">Чорно-білий</string>
+    <string name="filter_sepia">Сепія</string>
+    <string name="filter_invert">Інверсія</string>
+    <string name="filter_blur">Розмиття</string>
+
     <string name="tab_wallpapers">Шпалери</string>
     <string name="tab_providers">Джерела</string>
     <string name="tab_settings">Налаштування</string>

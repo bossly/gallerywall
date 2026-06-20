@@ -78,6 +78,14 @@
             app:summaryOn="@string/pref_notification_on"
             app:title="@string/pref_notification_title" />
 
+        <ListPreference
+            app:defaultValue="none"
+            app:entries="@array/filter_entries"
+            app:entryValues="@array/filter_values"
+            app:key="pref_post_processing_filter"
+            app:title="@string/pref_filter_title"
+            app:useSimpleSummaryProvider="true" />
+
     </PreferenceCategory>
 
 </PreferenceScreen>

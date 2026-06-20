@@ -54,8 +54,8 @@ platform :android do
         json_key_data: ENV["SUPPLY_JSON_KEY_DATA"],
         skip_upload_metadata: true,
         skip_upload_images: true,
-        skip_upload_screenshots: true,
-        skip_upload_changelogs: true
+        skip_upload_screenshots: true
+        # skip_upload_changelogs: true
     )
   end
 
@@ -65,8 +65,10 @@ platform :android do
 
     upload_to_play_store(
         json_key_data: ENV["SUPPLY_JSON_KEY_DATA"],
-        skip_upload_screenshots: true,
-    )
+        skip_upload_metadata: true,
+        skip_upload_images: true,
+        skip_upload_screenshots: true
+      )
   end
 
 end
