@@ -48,10 +48,11 @@ platform :android do
 
   desc "Beta release"
   lane :beta do
-    executeGradle("assembleRelease")
+    executeGradle("bundleRelease")
     upload_to_play_store(
         track: 'beta',
         json_key_data: ENV["SUPPLY_JSON_KEY_DATA"],
+        aab: 'app/build/outputs/bundle/release/app-release.aab',
         skip_upload_metadata: true,
         skip_upload_images: true,
         skip_upload_screenshots: true
@@ -61,10 +62,11 @@ platform :android do
 
   desc "Deploy a new version to the Google Play"
   lane :deploy do
-    executeGradle("assembleRelease")
+    executeGradle("bundleRelease")
 
     upload_to_play_store(
         json_key_data: ENV["SUPPLY_JSON_KEY_DATA"],
+        aab: 'app/build/outputs/bundle/release/app-release.aab',
         skip_upload_metadata: true,
         skip_upload_images: true,
         skip_upload_screenshots: true
