@@ -1,6 +1,10 @@
 package com.baysoft.gallerywall.ui
 
+import android.Manifest
+import android.os.Build
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -48,6 +52,12 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     }
 
     var showNoModelWarning by remember { mutableStateOf(false) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        // Permission result handled by system, nothing specific needed here for now
+    }
 
     // Helper to persist and reschedule WorkManager tasks
     val saveAndReschedule = {
@@ -102,6 +112,9 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             } else {
                 autoEnabled = it
                 saveAndReschedule()
+                if (it && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
                 if (!isPreview) {
                     val msg = if (it) "Auto-Wallpaper Enabled" else "Auto-Wallpaper Disabled"
                     Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()

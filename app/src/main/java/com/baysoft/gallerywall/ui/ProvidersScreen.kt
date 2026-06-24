@@ -154,6 +154,15 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                     Log.d("ProvidersScreen", "Selected model ZIP file for import via picker: $uri for model ID/Name: $modelId")
                     baseDir.mkdirs()
 
+                    val inputStream = context.contentResolver.openInputStream(uri)
+                    val sizeNeeded = inputStream?.available()?.toLong() ?: 0L
+                    inputStream?.close()
+
+                    if (!checkFreeSpace(context, sizeNeeded)) {
+                        Toast.makeText(context, "Not enough free space to import model (needs ${formatSize(sizeNeeded)})", Toast.LENGTH_LONG).show()
+                        return@launch
+                    }
+
                     Toast.makeText(context, "Importing and unzipping model zip...", Toast.LENGTH_LONG).show()
 
                     withContext(Dispatchers.IO) {
@@ -450,6 +459,13 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                         scope.launch {
                                                             try {
                                                                 Log.d("ProvidersScreen", "Download button clicked for model: ${model.name} (${model.id})")
+                                                                
+                                                                val bytesNeeded = parseSizeToBytes(model.size)
+                                                                if (!checkFreeSpace(context, bytesNeeded)) {
+                                                                    Toast.makeText(context, "Not enough free space (needs ${model.size})", Toast.LENGTH_LONG).show()
+                                                                    return@launch
+                                                                }
+
                                                                 val urlFilename = try {
                                                                     Uri.parse(model.downloadUrl).lastPathSegment ?: "${model.id}.zip"
                                                                 } catch (e: Exception) {
@@ -828,6 +844,35 @@ private fun calculateSha256(file: File): String {
         }
     }
     return digest.digest().joinToString("") { "%02x".format(it) }
+}
+
+private fun checkFreeSpace(context: Context, bytesNeeded: Long): Boolean {
+    try {
+        val storageManager = context.getSystemService(Context.STORAGE_SERVICE) as android.os.storage.StorageManager
+        val appSpecificInternalDirUuid: java.util.UUID = storageManager.getUuidForPath(context.filesDir)
+        val availableBytes: Long = storageManager.getAllocatableBytes(appSpecificInternalDirUuid)
+        return availableBytes >= bytesNeeded
+    } catch (e: Exception) {
+        Log.e("ProvidersScreen", "Failed to check free space", e)
+        // Fallback to simpler check if StorageManager fails
+        return context.filesDir.usableSpace >= bytesNeeded
+    }
+}
+
+private fun parseSizeToBytes(sizeStr: String): Long {
+    val units = mapOf(
+        "B" to 1L,
+        "KB" to 1024L,
+        "MB" to 1024L * 1024L,
+        "GB" to 1024L * 1024L * 1024L,
+        "TB" to 1024L * 1024L * 1024L * 1024L
+    )
+    val regex = Regex("""(\d+\.?\d*)\s*(\w+)""")
+    val match = regex.find(sizeStr) ?: return 0L
+    val value = match.groupValues[1].toDouble()
+    val unit = match.groupValues[2].uppercase()
+
+    return (value * (units[unit] ?: 1L)).toLong()
 }
 
 @Preview(showBackground = true)

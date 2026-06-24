@@ -104,7 +104,6 @@ class GalleryWall {
                 TimeUnit.MINUTES
             )
                 .setConstraints(constraints)
-                .setBackoffCriteria(BackoffPolicy.LINEAR, 10, TimeUnit.SECONDS)
                 .build()
 
             Log.d(TAG, "Automation scheduled: every $clampedMinutes minutes. Next run expected in ~$clampedMinutes minutes.")

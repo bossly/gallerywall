@@ -101,11 +101,12 @@ fun GalleryScreen(
     )
 
     var showErrorDialog by remember { mutableStateOf<String?>(null) }
+    var showGenerationWarning by remember { mutableStateOf(false) }
     var promptText by remember {
         mutableStateOf(prefs.getString(Settings.PREF_AUTOMATION_PROMPT, "") ?: "")
     }
 
-    val onGenerate: () -> Unit = {
+    val performGeneration: () -> Unit = {
         val providerId = settings.activeProviderId
 
         // Auto-set default prompt if empty
@@ -167,6 +168,14 @@ fun GalleryScreen(
         }
     }
 
+    val onGenerate: () -> Unit = {
+        if (settings.activeProviderId == "local_ai") {
+            showGenerationWarning = true
+        } else {
+            performGeneration()
+        }
+    }
+
     LaunchedEffect(serviceState) {
         when (serviceState) {
             is ImageGenerationService.GenerationState.Success -> {
@@ -222,7 +231,10 @@ fun GalleryScreen(
                 selectedWallpaper = null
             }
         },
-        onDismissErrorDialog = { showErrorDialog = null }
+        onDismissErrorDialog = { showErrorDialog = null },
+        showGenerationWarning = showGenerationWarning,
+        onProceedGeneration = performGeneration,
+        onDismissWarningDialog = { showGenerationWarning = false }
     )
 }
 
@@ -239,9 +251,12 @@ fun GalleryScreenContent(
     serviceState: ImageGenerationService.GenerationState,
     activeProviderId: String,
     showErrorDialog: String?,
+    showGenerationWarning: Boolean,
     promptText: String,
     onPromptTextChange: (String) -> Unit,
     onGenerate: () -> Unit,
+    onProceedGeneration: () -> Unit,
+    onDismissWarningDialog: () -> Unit,
     onNavigateToProviders: () -> Unit,
     onSelectWallpaper: (WallpaperEntity?) -> Unit,
     onDeleteWallpaper: (WallpaperEntity) -> Unit,
@@ -678,6 +693,27 @@ fun GalleryScreenContent(
                 }
             )
         }
+
+        if (showGenerationWarning) {
+            AlertDialog(
+                onDismissRequest = onDismissWarningDialog,
+                title = { Text("Start Generation?") },
+                text = { Text("Generating a new wallpaper using on-device AI may take 2-10 minutes depending on your device's performance. The system may slow down during this process.") },
+                confirmButton = {
+                    Button(onClick = {
+                        onDismissWarningDialog()
+                        onProceedGeneration()
+                    }) {
+                        Text("Proceed")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = onDismissWarningDialog) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -730,9 +766,12 @@ fun GalleryScreenPreview() {
             activeProviderId = "local_ai",
             isModelSelected = true,
             showErrorDialog = null,
+            showGenerationWarning = false,
             promptText = "Describe your wallpaper...",
             onPromptTextChange = {},
             onGenerate = {},
+            onProceedGeneration = {},
+            onDismissWarningDialog = {},
             onNavigateToProviders = {},
             onSelectWallpaper = {},
             onDeleteWallpaper = {},
@@ -756,9 +795,12 @@ fun GalleryScreenEmptyPreview() {
             activeProviderId = "local_ai",
             isModelSelected = true,
             showErrorDialog = null,
+            showGenerationWarning = false,
             promptText = "",
             onPromptTextChange = {},
             onGenerate = {},
+            onProceedGeneration = {},
+            onDismissWarningDialog = {},
             onNavigateToProviders = {},
             onSelectWallpaper = {},
             onDeleteWallpaper = {},
@@ -782,9 +824,12 @@ fun GalleryScreenNoModelPreview() {
             activeProviderId = "local_ai",
             isModelSelected = false,
             showErrorDialog = null,
+            showGenerationWarning = false,
             promptText = "",
             onPromptTextChange = {},
             onGenerate = {},
+            onProceedGeneration = {},
+            onDismissWarningDialog = {},
             onNavigateToProviders = {},
             onSelectWallpaper = {},
             onDeleteWallpaper = {},
@@ -808,9 +853,12 @@ fun GalleryScreenGeneratingPreview() {
             activeProviderId = "local_ai",
             isModelSelected = true,
             showErrorDialog = null,
+            showGenerationWarning = false,
             promptText = "A cute fluffy kitten",
             onPromptTextChange = {},
             onGenerate = {},
+            onProceedGeneration = {},
+            onDismissWarningDialog = {},
             onNavigateToProviders = {},
             onSelectWallpaper = {},
             onDeleteWallpaper = {},

@@ -1,10 +1,14 @@
 package com.baysoft.gallerywall
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.preference.CheckBoxPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
@@ -37,12 +41,19 @@ class SettingsFragment : PreferenceFragmentCompat() {
         findPreference<SwitchPreferenceCompat>(Settings.PREF_AUTO_WALLPAPER_ENABLED)?.run {
             updateDependentPrefs(isChecked)
             setOnPreferenceChangeListener { _, newValue ->
+                val ctx = context ?: return@setOnPreferenceChangeListener true
                 val enabled = newValue as Boolean
                 updateDependentPrefs(enabled)
                 if (enabled) {
-                    GalleryWall.schedule(requireContext())
+                    GalleryWall.schedule(ctx.applicationContext)
+                    // Request notification permission on Android 13+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
+                        }
+                    }
                 } else {
-                    GalleryWall.cancelSchedule(requireContext())
+                    GalleryWall.cancelSchedule(ctx.applicationContext)
                 }
                 true
             }
@@ -96,9 +107,10 @@ class SettingsFragment : PreferenceFragmentCompat() {
     }
 
     private fun rescheduleIfEnabled() {
-        val prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
+        val ctx = context ?: return
+        val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
         if (Settings(prefs).autoWallpaperEnabled) {
-            GalleryWall.schedule(requireContext())
+            GalleryWall.schedule(ctx.applicationContext)
         }
     }
 
