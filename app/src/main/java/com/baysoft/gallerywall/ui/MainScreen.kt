@@ -19,7 +19,7 @@ import com.baysoft.gallerywall.ui.theme.GalleryWallTheme
 enum class GalleryTab(val title: String, val icon: ImageVector) {
     GALLERY("Gallery", Icons.Default.Home),
     PROVIDERS("Providers", Icons.Default.List),
-    AUTOMATION("Automation", Icons.Default.Settings)
+    SETTINGS("Settings", Icons.Default.Settings)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,9 +55,9 @@ fun MainScreen() {
                 label = "ScreenTransition"
             ) { tab ->
                 when (tab) {
-                    GalleryTab.GALLERY -> GalleryScreen()
+                    GalleryTab.GALLERY -> GalleryScreen(onNavigateToProviders = { selectedTab = GalleryTab.PROVIDERS })
                     GalleryTab.PROVIDERS -> ProvidersScreen()
-                    GalleryTab.AUTOMATION -> AutomationScreen()
+                    GalleryTab.SETTINGS -> SettingsScreen()
                 }
             }
         }

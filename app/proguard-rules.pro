@@ -26,3 +26,31 @@
 -keepclassmembers class * extends androidx.work.CoroutineWorker {
     <init>(android.content.Context,androidx.work.WorkerParameters);
 }
+
+# Google MediaPipe Rules
+-keep class com.google.mediapipe.** { *; }
+-dontwarn com.google.mediapipe.**
+
+# Google Protobuf Rules
+-keep class com.google.protobuf.** { *; }
+-dontwarn com.google.protobuf.**
+
+# Preserve all generated protobuf message fields and methods
+-keepclassmembers class * extends com.google.protobuf.GeneratedMessageLite {
+    <fields>;
+    <methods>;
+}
+
+-keepclassmembers class * extends com.google.protobuf.GeneratedMessage {
+    <fields>;
+    <methods>;
+}
+
+-keepclassmembers class * extends com.google.protobuf.GeneratedMessageV3 {
+    <fields>;
+    <methods>;
+}
+
+# Flogger Rules
+-keep class com.google.common.flogger.** { *; }
+-dontwarn com.google.common.flogger.**

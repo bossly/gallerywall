@@ -62,11 +62,7 @@ class GalleryWall {
 
         internal fun buildWorkConstraints(settings: Settings): Constraints {
             val builder = Constraints.Builder()
-            if (settings.constraintWifi) {
-                builder.setRequiredNetworkType(NetworkType.UNMETERED)
-            } else {
-                builder.setRequiredNetworkType(NetworkType.NOT_REQUIRED)
-            }
+            builder.setRequiredNetworkType(NetworkType.NOT_REQUIRED)
             if (settings.constraintCharging) {
                 builder.setRequiresCharging(true)
             }

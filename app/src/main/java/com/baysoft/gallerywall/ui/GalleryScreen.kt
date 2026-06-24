@@ -16,6 +16,8 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.List
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.core.content.edit
 import androidx.core.graphics.createBitmap
 import androidx.compose.material3.*
@@ -51,7 +53,10 @@ import com.baysoft.gallerywall.ui.theme.GalleryWallTheme
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun GalleryScreen(modifier: Modifier = Modifier) {
+fun GalleryScreen(
+    modifier: Modifier = Modifier,
+    onNavigateToProviders: () -> Unit = {}
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     
@@ -83,6 +88,10 @@ fun GalleryScreen(modifier: Modifier = Modifier) {
     val prefs = remember { PreferenceManager.getDefaultSharedPreferences(context) }
     val settings = remember(prefs) { Settings(prefs) }
     val activeProviderId = settings.activeProviderId
+    val activeModelPath = settings.activeModelPath
+    val isModelSelected = remember(activeModelPath) {
+        !activeModelPath.isNullOrEmpty() && File(activeModelPath).exists()
+    }
 
     val isCurrentlyGenerating = isGenerating || (
         activeProviderId == "local_ai" && (
@@ -93,11 +102,18 @@ fun GalleryScreen(modifier: Modifier = Modifier) {
 
     var showErrorDialog by remember { mutableStateOf<String?>(null) }
     var promptText by remember {
-        mutableStateOf(prefs.getString(Settings.PREF_AUTOMATION_PROMPT, Settings.DEFAULT_AUTOMATION_PROMPT) ?: Settings.DEFAULT_AUTOMATION_PROMPT)
+        mutableStateOf(prefs.getString(Settings.PREF_AUTOMATION_PROMPT, "") ?: "")
     }
 
     val onGenerate: () -> Unit = {
         val providerId = settings.activeProviderId
+
+        // Auto-set default prompt if empty
+        if (promptText.isBlank()) {
+            val defaultPrompt = Settings.DEFAULT_AUTOMATION_PROMPT
+            promptText = defaultPrompt
+            prefs.edit { putString(Settings.PREF_AUTOMATION_PROMPT, defaultPrompt) }
+        }
 
         if (PromptFilter.containsInappropriateContent(promptText)) {
             Toast.makeText(context, "Inappropriate prompt detected. Please try another one.", Toast.LENGTH_LONG).show()
@@ -177,6 +193,8 @@ fun GalleryScreen(modifier: Modifier = Modifier) {
         currentProviderState = currentProviderState,
         serviceState = serviceState,
         activeProviderId = activeProviderId,
+        isModelSelected = isModelSelected,
+        onNavigateToProviders = onNavigateToProviders,
         showErrorDialog = showErrorDialog,
         promptText = promptText,
         onPromptTextChange = {
@@ -216,6 +234,7 @@ fun GalleryScreenContent(
     selectedWallpaper: WallpaperEntity?,
     isLoading: Boolean,
     isCurrentlyGenerating: Boolean,
+    isModelSelected: Boolean,
     currentProviderState: ProviderState?,
     serviceState: ImageGenerationService.GenerationState,
     activeProviderId: String,
@@ -223,6 +242,7 @@ fun GalleryScreenContent(
     promptText: String,
     onPromptTextChange: (String) -> Unit,
     onGenerate: () -> Unit,
+    onNavigateToProviders: () -> Unit,
     onSelectWallpaper: (WallpaperEntity?) -> Unit,
     onDeleteWallpaper: (WallpaperEntity) -> Unit,
     onApplyWallpaper: (Bitmap) -> Unit,
@@ -242,30 +262,42 @@ fun GalleryScreenContent(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "Generate Your First Wallpaper",
+                    text = if (activeProviderId == "local_ai" && !isModelSelected) "AI Model Required" else "Generate Your First Wallpaper",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Generate your first wallpaper using on-device AI model with the default prompt: '${Settings.DEFAULT_AUTOMATION_PROMPT}'",
+                    text = if (activeProviderId == "local_ai" && !isModelSelected) {
+                        "To generate wallpapers using On-Device AI, you need to download a Stable Diffusion model first."
+                    } else {
+                        "Generate your first wallpaper using on-device AI model with the default prompt: '${Settings.DEFAULT_AUTOMATION_PROMPT}'"
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(24.dp))
-                Button(onClick = { onGenerate() }) {
-                    Icon(Icons.Default.Add, contentDescription = "Generate")
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Generate")
+                if (activeProviderId == "local_ai" && !isModelSelected) {
+                    Button(onClick = { onNavigateToProviders() }) {
+                        Icon(Icons.Default.List, contentDescription = "Go to Providers")
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Download & Select Model")
+                    }
+                } else {
+                    Button(onClick = { onGenerate() }) {
+                        Icon(Icons.Default.Add, contentDescription = "Generate")
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Generate")
+                    }
                 }
             }
         } else {
             Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Historical Wallpapers",
+                    text = "Wallpapers",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -475,46 +507,61 @@ fun GalleryScreenContent(
         }
 
         // Bottom prompt input bar
-        Surface(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth(),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-            shadowElevation = 8.dp
-        ) {
-            Row(
+        val showPromptBar = !isLoading && !(wallpapers.isEmpty() && !isCurrentlyGenerating && activeProviderId == "local_ai" && !isModelSelected)
+        if (showPromptBar) {
+            Surface(
                 modifier = Modifier
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                    .navigationBarsPadding(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                shadowElevation = 8.dp
             ) {
-                OutlinedTextField(
-                    value = promptText,
-                    onValueChange = onPromptTextChange,
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("Describe your wallpaper...") },
-                    maxLines = 2,
-                    shape = MaterialTheme.shapes.medium,
-                    enabled = !isCurrentlyGenerating
-                )
-                FilledIconButton(
-                    onClick = {
-                        focusManager.clearFocus()
-                        if (isCurrentlyGenerating) return@FilledIconButton
-                        onGenerate()
-                    },
-                    enabled = !isCurrentlyGenerating,
-                    modifier = Modifier.size(48.dp)
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .navigationBarsPadding(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (isCurrentlyGenerating) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
-                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Generate wallpaper")
+                    OutlinedTextField(
+                        value = promptText,
+                        onValueChange = onPromptTextChange,
+                        modifier = Modifier
+                            .weight(1f)
+                            .onFocusChanged { focusState ->
+                                if (focusState.isFocused && promptText == Settings.DEFAULT_AUTOMATION_PROMPT) {
+                                    onPromptTextChange("")
+                                }
+                            },
+                        placeholder = { Text("Describe your wallpaper...") },
+                        maxLines = 2,
+                        shape = MaterialTheme.shapes.medium,
+                        enabled = !isCurrentlyGenerating
+                    )
+                    FilledIconButton(
+                        onClick = {
+                            focusManager.clearFocus()
+                            if (isCurrentlyGenerating) return@FilledIconButton
+                            if (activeProviderId == "local_ai" && !isModelSelected) {
+                                onNavigateToProviders()
+                            } else {
+                                onGenerate()
+                            }
+                        },
+                        enabled = !isCurrentlyGenerating,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        if (isCurrentlyGenerating) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        } else if (activeProviderId == "local_ai" && !isModelSelected) {
+                            Icon(Icons.Default.List, contentDescription = "Go to Providers")
+                        } else {
+                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Generate wallpaper")
+                        }
                     }
                 }
             }
@@ -681,10 +728,12 @@ fun GalleryScreenPreview() {
             currentProviderState = null,
             serviceState = ImageGenerationService.GenerationState.Idle,
             activeProviderId = "local_ai",
+            isModelSelected = true,
             showErrorDialog = null,
             promptText = "Describe your wallpaper...",
             onPromptTextChange = {},
             onGenerate = {},
+            onNavigateToProviders = {},
             onSelectWallpaper = {},
             onDeleteWallpaper = {},
             onApplyWallpaper = {},
@@ -705,10 +754,38 @@ fun GalleryScreenEmptyPreview() {
             currentProviderState = null,
             serviceState = ImageGenerationService.GenerationState.Idle,
             activeProviderId = "local_ai",
+            isModelSelected = true,
             showErrorDialog = null,
             promptText = "",
             onPromptTextChange = {},
             onGenerate = {},
+            onNavigateToProviders = {},
+            onSelectWallpaper = {},
+            onDeleteWallpaper = {},
+            onApplyWallpaper = {},
+            onDismissErrorDialog = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun GalleryScreenNoModelPreview() {
+    GalleryWallTheme {
+        GalleryScreenContent(
+            wallpapers = emptyList(),
+            selectedWallpaper = null,
+            isLoading = false,
+            isCurrentlyGenerating = false,
+            currentProviderState = null,
+            serviceState = ImageGenerationService.GenerationState.Idle,
+            activeProviderId = "local_ai",
+            isModelSelected = false,
+            showErrorDialog = null,
+            promptText = "",
+            onPromptTextChange = {},
+            onGenerate = {},
+            onNavigateToProviders = {},
             onSelectWallpaper = {},
             onDeleteWallpaper = {},
             onApplyWallpaper = {},
@@ -729,10 +806,12 @@ fun GalleryScreenGeneratingPreview() {
             currentProviderState = null,
             serviceState = ImageGenerationService.GenerationState.Generating(0.45f, 9, 20),
             activeProviderId = "local_ai",
+            isModelSelected = true,
             showErrorDialog = null,
             promptText = "A cute fluffy kitten",
             onPromptTextChange = {},
             onGenerate = {},
+            onNavigateToProviders = {},
             onSelectWallpaper = {},
             onDeleteWallpaper = {},
             onApplyWallpaper = {},

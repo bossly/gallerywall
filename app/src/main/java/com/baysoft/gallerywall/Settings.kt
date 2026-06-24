@@ -18,13 +18,13 @@ class Settings(private val preferences: SharedPreferences) {
         get() = preferences.getBoolean(PREF_AUTO_APPLY_WALLPAPER, true)
 
     val constraintWifi: Boolean
-        get() = preferences.getBoolean(PREF_CONSTRAINT_WIFI, true)
+        get() = preferences.getBoolean(PREF_CONSTRAINT_WIFI, false)
 
     val constraintCharging: Boolean
-        get() = preferences.getBoolean(PREF_CONSTRAINT_CHARGING, false)
+        get() = preferences.getBoolean(PREF_CONSTRAINT_CHARGING, true)
 
     val constraintIdle: Boolean
-        get() = preferences.getBoolean(PREF_CONSTRAINT_IDLE, false)
+        get() = preferences.getBoolean(PREF_CONSTRAINT_IDLE, true)
 
     val constraintBatteryLow: Boolean
         get() = preferences.getBoolean(PREF_CONSTRAINT_BATTERY_LOW, true)

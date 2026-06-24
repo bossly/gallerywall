@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
+import com.baysoft.gallerywall.BuildConfig
 import com.baysoft.gallerywall.Settings
 import com.baysoft.gallerywall.ml.LocalMLEngine
 import com.baysoft.gallerywall.ui.theme.GalleryWallTheme
@@ -55,6 +56,9 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
     val prefs = remember { if (isPreview) null else PreferenceManager.getDefaultSharedPreferences(context) }
     
     var activeModelPath by remember { mutableStateOf(prefs?.getString(Settings.PREF_ACTIVE_MODEL_PATH, null)) }
+    var selectedProviderId by remember {
+        mutableStateOf(prefs?.getString(Settings.PREF_WALLPAPER_PROVIDER, "local_ai") ?: "local_ai")
+    }
     var selectedScale by remember { mutableStateOf(prefs?.getInt(Settings.PREF_SCALE_FACTOR, Settings.DEFAULT_SCALE_FACTOR) ?: Settings.DEFAULT_SCALE_FACTOR) }
     val downloadingStates = remember { mutableStateMapOf<String, String>() }
 
@@ -149,8 +153,15 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                         context.contentResolver.openInputStream(uri)?.use { input ->
                             unzip(input, targetDir)
                         }
+                        // Automatically select the imported model and switch provider
+                        activeModelPath = targetDir.absolutePath
+                        selectedProviderId = "local_ai"
+                        prefs?.edit()
+                            ?.putString(Settings.PREF_ACTIVE_MODEL_PATH, targetDir.absolutePath)
+                            ?.putString(Settings.PREF_WALLPAPER_PROVIDER, "local_ai")
+                            ?.apply()
                     }
-                    Toast.makeText(context, "Model imported successfully!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Model imported and activated!", Toast.LENGTH_SHORT).show()
                     refreshTrigger++
                 } catch (e: Exception) {
                     Log.e("ProvidersScreen", "Failed to import selected model zip", e)
@@ -158,10 +169,6 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                 }
             }
         }
-    }
-
-    var selectedProviderId by remember {
-        mutableStateOf(prefs?.getString(Settings.PREF_WALLPAPER_PROVIDER, "local_ai") ?: "local_ai")
     }
 
     val allProviders = remember { com.baysoft.gallerywall.provider.WallpaperProviderRegistry.all() }
@@ -252,12 +259,14 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
-                    Button(
-                        onClick = {
-                            filePickerLauncher.launch("*/*")
+                    if (BuildConfig.DEBUG) {
+                        Button(
+                            onClick = {
+                                filePickerLauncher.launch("*/*")
+                            }
+                        ) {
+                            Text("Import ZIP")
                         }
-                    ) {
-                        Text("Import ZIP")
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
@@ -491,9 +500,16 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                                             false
                                                                         }
                                                                     }
-                                                                    if (unzipSuccess) {
+                                                                        if (unzipSuccess) {
                                                                         downloadingStates.remove(model.id)
-                                                                        Toast.makeText(context, "Loaded model successfully from local ZIP!", Toast.LENGTH_SHORT).show()
+                                                                        val targetDir = getModelFile(model.id)
+                                                                        activeModelPath = targetDir.absolutePath
+                                                                        selectedProviderId = "local_ai"
+                                                                        prefs?.edit()
+                                                                            ?.putString(Settings.PREF_ACTIVE_MODEL_PATH, targetDir.absolutePath)
+                                                                            ?.putString(Settings.PREF_WALLPAPER_PROVIDER, "local_ai")
+                                                                            ?.apply()
+                                                                        Toast.makeText(context, "Model loaded and activated!", Toast.LENGTH_SHORT).show()
                                                                     } else {
                                                                         Log.e("ProvidersScreen", "Failed to load/extract model from local ZIP for model ${model.id}")
                                                                         downloadingStates[model.id] = "Error: ${errorMessage ?: "Unknown error"}"
@@ -610,7 +626,14 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                                         
                                                                         if (unzipSuccess) {
                                                                             downloadingStates.remove(model.id)
-                                                                            Toast.makeText(context, "Loaded model successfully!", Toast.LENGTH_SHORT).show()
+                                                                            val targetDir = getModelFile(model.id)
+                                                                            activeModelPath = targetDir.absolutePath
+                                                                            selectedProviderId = "local_ai"
+                                                                            prefs?.edit()
+                                                                                ?.putString(Settings.PREF_ACTIVE_MODEL_PATH, targetDir.absolutePath)
+                                                                                ?.putString(Settings.PREF_WALLPAPER_PROVIDER, "local_ai")
+                                                                                ?.apply()
+                                                                            Toast.makeText(context, "Model downloaded and activated!", Toast.LENGTH_SHORT).show()
                                                                         } else {
                                                                             Log.e("ProvidersScreen", "Extraction failed for model ${model.id}: $errorMessage")
                                                                             downloadingStates[model.id] = "Error: $errorMessage"
