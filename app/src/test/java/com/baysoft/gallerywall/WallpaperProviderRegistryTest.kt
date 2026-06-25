@@ -9,6 +9,7 @@ import com.baysoft.gallerywall.provider.ProviderState
 import com.baysoft.gallerywall.provider.WallpaperProvider
 import com.baysoft.gallerywall.provider.WallpaperProviderRegistry
 import org.junit.After
+import org.junit.Before
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
@@ -20,6 +21,20 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
 class WallpaperProviderRegistryTest {
+
+    @Before
+    fun setUp() {
+        // Reset registry to initial state
+        val all = WallpaperProviderRegistry.all()
+        for (p in all) {
+            if (p != LocalAIProvider) {
+                WallpaperProviderRegistry.unregister(p)
+            }
+        }
+        if (WallpaperProviderRegistry.get(LocalAIProvider.id) == null) {
+            WallpaperProviderRegistry.register(LocalAIProvider)
+        }
+    }
 
     @After
     fun tearDown() {

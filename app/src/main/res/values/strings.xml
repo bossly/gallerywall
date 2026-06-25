@@ -85,6 +85,7 @@
     <string name="proceed">Proceed</string>
     <string name="selected">Selected</string>
     <string name="download">Download</string>
+    <string name="generate">Generate</string>
 
     <!-- MainScreen/Navigation -->
     <string name="generate_wallpaper">Generate wallpaper</string>

@@ -71,12 +71,20 @@ class WallpaperProviderGenerateTest {
             .putString(Settings.PREF_WALLPAPER_PROVIDER, "random_color")
             .commit()
             
-        receiver.onReceive(context, intent)
-        
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
         val shadowNm = org.robolectric.Shadows.shadowOf(nm)
-        org.junit.Assert.assertTrue(
-            shadowNm.areNotificationsEnabled()
-        )
+        
+        // Post a dummy progress notification to verify cancellation
+        val dummyNotification = android.app.Notification.Builder(context, "dummy_channel")
+            .setContentTitle("Dummy")
+            .setSmallIcon(android.R.drawable.ic_menu_close_clear_cancel)
+            .build()
+        nm.notify(GalleryWallNotifications.PROGRESS_NOTIFICATION_ID, dummyNotification)
+        
+        org.junit.Assert.assertNotNull(shadowNm.getNotification(GalleryWallNotifications.PROGRESS_NOTIFICATION_ID))
+        
+        receiver.onReceive(context, intent)
+        
+        org.junit.Assert.assertNull(shadowNm.getNotification(GalleryWallNotifications.PROGRESS_NOTIFICATION_ID))
     }
 }

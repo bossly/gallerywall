@@ -75,6 +75,7 @@
     <string name="proceed">Продовжити</string>
     <string name="selected">Вибрано</string>
     <string name="download">Завантажити</string>
+    <string name="generate">Згенерувати</string>
 
     <!-- MainScreen/Navigation -->
     <string name="generate_wallpaper">Згенерувати шпалери</string>
