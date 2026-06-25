@@ -89,4 +89,15 @@ object LocalAIProvider : WallpaperProvider {
         onStateUpdate(DefaultProviderState(progress = 1.0f, result = wallpaperBmp, message = "Done"))
         return wallpaperBmp
     }
+
+    override fun isReady(context: Context): ProviderReadiness {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val settings = Settings(prefs)
+        val activeModelPath = settings.activeModelPath
+        if (activeModelPath.isNullOrEmpty()) return ProviderReadiness.NONE
+        val modelDir = java.io.File(activeModelPath)
+        val exists = modelDir.exists() && modelDir.isDirectory
+        return if (exists) ProviderReadiness.PROMPT else ProviderReadiness.NONE
+    }
 }
+

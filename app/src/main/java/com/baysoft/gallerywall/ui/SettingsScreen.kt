@@ -89,7 +89,6 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                         showNoModelWarning = false
                         autoEnabled = true
                         saveAndReschedule()
-                        Toast.makeText(context, "Auto-Wallpaper Enabled", Toast.LENGTH_SHORT).show()
                     }
                 ) {
                     Text("Enable Anyway")
@@ -114,10 +113,6 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 saveAndReschedule()
                 if (it && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                }
-                if (!isPreview) {
-                    val msg = if (it) "Auto-Wallpaper Enabled" else "Auto-Wallpaper Disabled"
-                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                 }
             }
         },

@@ -68,4 +68,7 @@ object ColorProvider : WallpaperProvider {
         onStateUpdate(finalState)
         return bitmap
     }
+
+    override fun isReady(context: Context): ProviderReadiness = ProviderReadiness.PROMPT
 }
+

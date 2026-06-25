@@ -24,6 +24,12 @@ data class DefaultProviderState(
     override val message: String? = null
 ) : ProviderState
 
+enum class ProviderReadiness {
+    NONE,
+    READY,
+    PROMPT
+}
+
 /**
  * Strategy for generating a wallpaper bitmap from current preferences.
  * Register new implementations in [WallpaperProviderRegistry].
@@ -38,4 +44,6 @@ interface WallpaperProvider {
     val summaryRes: Int
 
     fun generateBitmap(context: Context, onStateUpdate: (ProviderState) -> Unit = {}): Bitmap
+
+    fun isReady(context: Context): ProviderReadiness = ProviderReadiness.READY
 }

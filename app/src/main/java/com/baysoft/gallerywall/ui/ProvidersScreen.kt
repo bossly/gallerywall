@@ -234,7 +234,6 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                     .clickable {
                         selectedProviderId = provider.id
                         prefs?.edit()?.putString(Settings.PREF_WALLPAPER_PROVIDER, provider.id)?.apply()
-                        Toast.makeText(context, "Provider: ${context.getString(provider.titleRes)}", Toast.LENGTH_SHORT).show()
                     }
             ) {
                 Row(
@@ -396,7 +395,6 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                     prefs?.edit()?.remove(Settings.PREF_ACTIVE_MODEL_PATH)?.apply()
                                                 }
                                                 refreshTrigger++
-                                                Toast.makeText(context, "Deleted model folder", Toast.LENGTH_SHORT).show()
                                             }
                                         ) {
                                             Icon(
@@ -567,8 +565,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                                 val downloadId = dm.enqueue(request)
 
                                                                 downloadingStates[model.id] = "Downloading..."
-                                                                Toast.makeText(context, "Started download in background. Monitor via system tray progress.", Toast.LENGTH_LONG).show()
-                                                                
+
                                                                 scope.launch {
                                                                     var isDone = false
                                                                     var isError = false
