@@ -43,6 +43,7 @@ class ImageGenerationService : Service() {
         const val EXTRA_MODEL_PATH = "extra_model_path"
         const val EXTRA_COLORS_HEX = "extra_colors_hex"
         const val EXTRA_AUTO_APPLY = "extra_auto_apply"
+        const val ACTION_STOP = "com.baysoft.gallerywall.ACTION_STOP"
 
         private val _state = MutableStateFlow<GenerationState>(GenerationState.Idle)
         val state: StateFlow<GenerationState> = _state.asStateFlow()
@@ -69,6 +70,16 @@ class ImageGenerationService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_STOP) {
+            Log.i(TAG, "Stop action received. Cancelling active job, unloading model, and stopping service.")
+            activeJob?.cancel()
+            _state.value = GenerationState.Idle
+            LocalMLEngine.getInstance().unloadModel()
+            stopForeground(true)
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
         val prompt = intent?.getStringExtra(EXTRA_PROMPT) ?: ""
         val modelPath = intent?.getStringExtra(EXTRA_MODEL_PATH) ?: ""
 
@@ -115,12 +126,16 @@ class ImageGenerationService : Service() {
 
                 // 2. Perform progressive generation on Dispatchers.Default
                 val rawTile = withContext(Dispatchers.Default) {
+                    val coroutineScope = this
                     engine.generateTileProgressively(
                         prompt = prompt,
                         steps = 20,
                         seed = -1,
                         supportTransparency = false
                     ) { step, total ->
+                        if (!coroutineScope.isActive) {
+                            throw CancellationException("Generation cancelled")
+                        }
                         val progress = step.toFloat() / total.toFloat()
                         _state.value = GenerationState.Generating(progress, step, total)
                         updateNotification("Generating image: step $step/$total", step, total)
@@ -197,6 +212,7 @@ class ImageGenerationService : Service() {
         super.onDestroy()
         activeJob?.cancel()
         serviceScope.cancel()
+        LocalMLEngine.getInstance().unloadModel()
     }
 
     private fun buildNotification(contentText: String, progress: Int = -1, max: Int = -1): Notification {
@@ -206,12 +222,23 @@ class ImageGenerationService : Service() {
             PendingIntent.FLAG_IMMUTABLE
         )
 
+        val stopIntent = Intent(this, ImageGenerationService::class.java).apply {
+            action = ACTION_STOP
+        }
+        val stopPendingIntent = PendingIntent.getService(
+            this,
+            1,
+            stopIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("GalleryWall On-Device AI")
             .setContentText(contentText)
             .setSmallIcon(R.drawable.icon_notification)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
+            .addAction(R.drawable.ic_stop, "Stop", stopPendingIntent)
 
         if (max > 0 && progress >= 0) {
             builder.setProgress(max, progress, false)

@@ -41,7 +41,10 @@ class GalleryWall {
         const val ACTION_REFRESH_IDLE = "com.baysoft.gallerywall.REFRESH_IDLE"
 
         /** Sent when user clicks "Apply" on a notification. */
-        const val ACTION_APPLY_WALLPAPER = "com.baysoft.gallerywall.APPLY_WALLPAPER"
+        const val ACTION_APPLY_WALLPAPER = "com.baysoft.gallerywall.ACTION_APPLY_WALLPAPER"
+
+        /** Sent when user clicks "Stop" on a progress notification. */
+        const val ACTION_STOP_GENERATION = "com.baysoft.gallerywall.ACTION_STOP_GENERATION"
 
         /** Intent extra for file path to apply. */
         const val EXTRA_FILE_PATH = "extra_file_path"

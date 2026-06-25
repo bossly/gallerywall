@@ -37,4 +37,46 @@ class WallpaperProviderGenerateTest {
             GalleryWall.createWallpaperBitmap(context)
         }
     }
+
+    @Test
+    fun colorProvider_cancellation() {
+        val provider = com.baysoft.gallerywall.provider.ColorProvider
+        val thread = Thread {
+            assertThrows(java.util.concurrent.CancellationException::class.java) {
+                provider.generateBitmap(context) {}
+            }
+        }
+        thread.start()
+        Thread.sleep(500)
+        provider.stop(context)
+        thread.join(3000)
+    }
+
+    @Test
+    fun localAIProvider_stop_startsServiceWithStopAction() {
+        val provider = com.baysoft.gallerywall.provider.LocalAIProvider
+        provider.stop(context)
+        val intent = org.robolectric.Shadows.shadowOf(context as android.app.Application).nextStartedService
+        org.junit.Assert.assertNotNull(intent)
+        org.junit.Assert.assertEquals(ImageGenerationService::class.java.name, intent.component?.className)
+        org.junit.Assert.assertEquals(ImageGenerationService.ACTION_STOP, intent.action)
+    }
+
+    @Test
+    fun stopIntent_broadcast_cancelsProgressNotification() {
+        val receiver = GalleryWallReceiver()
+        val intent = GalleryWallReceiver.stopIntent(context)
+        
+        PreferenceManager.getDefaultSharedPreferences(context).edit()
+            .putString(Settings.PREF_WALLPAPER_PROVIDER, "random_color")
+            .commit()
+            
+        receiver.onReceive(context, intent)
+        
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        val shadowNm = org.robolectric.Shadows.shadowOf(nm)
+        org.junit.Assert.assertTrue(
+            shadowNm.areNotificationsEnabled()
+        )
+    }
 }

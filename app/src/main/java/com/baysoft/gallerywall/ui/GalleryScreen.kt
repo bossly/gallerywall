@@ -45,10 +45,13 @@ import com.baysoft.gallerywall.data.WallpaperDatabase
 import com.baysoft.gallerywall.data.WallpaperEntity
 import com.baysoft.gallerywall.data.WallpaperRepository
 import com.baysoft.gallerywall.provider.ProviderState
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import androidx.compose.ui.res.painterResource
+import com.baysoft.gallerywall.R
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
 import com.baysoft.gallerywall.provider.ProviderReadiness
@@ -164,9 +167,13 @@ fun GalleryScreen(
                         
                         path
                     }
+                } catch (e: CancellationException) {
+                    Log.i(TAG, "Generation cancelled by user")
                 } catch (e: Exception) {
                     Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
                 } finally {
+                    val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+                    nm.cancel(com.baysoft.gallerywall.GalleryWallNotifications.PROGRESS_NOTIFICATION_ID)
                     refreshRecents()
                     isGenerating = false
                     currentProviderState = null
@@ -476,6 +483,25 @@ fun GalleryScreenContent(
                                                 textAlign = TextAlign.Center
                                             )
                                         }
+                                    }
+                                    Spacer(modifier = Modifier.height(24.dp))
+                                    Button(
+                                        onClick = {
+                                            val provider = WallpaperProviderRegistry.get(activeProviderId)
+                                                ?: WallpaperProviderRegistry.defaultProvider
+                                            provider.stop(context)
+                                        },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.error,
+                                            contentColor = MaterialTheme.colorScheme.onError
+                                        )
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_stop),
+                                            contentDescription = "Stop"
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Stop")
                                     }
                                 }
                             }

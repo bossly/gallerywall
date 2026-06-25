@@ -1,11 +1,13 @@
 package com.baysoft.gallerywall.provider
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.util.Log
 import androidx.preference.PreferenceManager
 import com.baysoft.gallerywall.R
 import com.baysoft.gallerywall.Settings
+import com.baysoft.gallerywall.ImageGenerationService
 import com.baysoft.gallerywall.WallpaperGenerator
 import com.baysoft.gallerywall.ml.LocalMLEngine
 
@@ -98,6 +100,14 @@ object LocalAIProvider : WallpaperProvider {
         val modelDir = java.io.File(activeModelPath)
         val exists = modelDir.exists() && modelDir.isDirectory
         return if (exists) ProviderReadiness.PROMPT else ProviderReadiness.NONE
+    }
+
+    override fun stop(context: Context) {
+        val intent = Intent(context, ImageGenerationService::class.java).apply {
+            action = ImageGenerationService.ACTION_STOP
+        }
+        context.startService(intent)
+        LocalMLEngine.getInstance().unloadModel()
     }
 }
 

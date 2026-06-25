@@ -46,4 +46,6 @@ interface WallpaperProvider {
     fun generateBitmap(context: Context, onStateUpdate: (ProviderState) -> Unit = {}): Bitmap
 
     fun isReady(context: Context): ProviderReadiness = ProviderReadiness.READY
+
+    fun stop(context: Context) {}
 }

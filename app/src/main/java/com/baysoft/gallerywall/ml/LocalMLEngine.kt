@@ -206,6 +206,9 @@ class LocalMLEngine private constructor() {
             }
 
         } catch (e: Exception) {
+            if (e is java.util.concurrent.CancellationException) {
+                throw e
+            }
             Log.e(TAG, "MediaPipe Image Generator generation failed", e)
             throw e
         }
