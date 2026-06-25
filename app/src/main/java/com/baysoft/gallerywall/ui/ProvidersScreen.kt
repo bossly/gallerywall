@@ -280,12 +280,15 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     if (BuildConfig.DEBUG) {
-                        Button(
+                        IconButton(
                             onClick = {
                                 filePickerLauncher.launch("*/*")
                             }
                         ) {
-                            Text("Import ZIP")
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Import ZIP"
+                            )
                         }
                     }
                 }
