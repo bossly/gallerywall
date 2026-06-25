@@ -1,6 +1,8 @@
 package com.baysoft.gallerywall.ui
 
+import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
@@ -31,6 +33,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
+import com.baysoft.gallerywall.R
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -43,19 +47,29 @@ import com.baysoft.gallerywall.data.WallpaperDatabase
 import com.baysoft.gallerywall.data.WallpaperEntity
 import com.baysoft.gallerywall.data.WallpaperRepository
 import com.baysoft.gallerywall.provider.ProviderState
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
+import com.baysoft.gallerywall.provider.ProviderReadiness
+import com.baysoft.gallerywall.provider.WallpaperProviderRegistry
 import com.baysoft.gallerywall.ui.theme.GalleryWallTheme
+
+private const val TAG = "GalleryScreen"
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun GalleryScreen(
     modifier: Modifier = Modifier,
-    onNavigateToProviders: () -> Unit = {}
+    onNavigateToProviders: () -> Unit = {},
+    showPromptOverlay: Boolean = false,
+    onDismissPromptOverlay: () -> Unit = {},
+    triggerDirectGeneration: Boolean = false,
+    onDirectGenerationStarted: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -101,11 +115,12 @@ fun GalleryScreen(
     )
 
     var showErrorDialog by remember { mutableStateOf<String?>(null) }
+    var showGenerationWarning by remember { mutableStateOf(false) }
     var promptText by remember {
         mutableStateOf(prefs.getString(Settings.PREF_AUTOMATION_PROMPT, "") ?: "")
     }
 
-    val onGenerate: () -> Unit = {
+    val performGeneration: () -> Unit = {
         val providerId = settings.activeProviderId
 
         // Auto-set default prompt if empty
@@ -153,17 +168,29 @@ fun GalleryScreen(
                         
                         path
                     }
-                    if (filePath != null) {
-                        Toast.makeText(context, "New wallpaper generated! Use notification to apply.", Toast.LENGTH_LONG).show()
-                    }
+                } catch (e: CancellationException) {
+                    Log.i(TAG, "Generation cancelled by user")
                 } catch (e: Exception) {
                     Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
                 } finally {
+                    val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+                    nm.cancel(com.baysoft.gallerywall.GalleryWallNotifications.PROGRESS_NOTIFICATION_ID)
                     refreshRecents()
                     isGenerating = false
                     currentProviderState = null
                 }
             }
+        }
+    }
+
+    val onGenerate: () -> Unit = {
+        val resolvedPrompt = promptText.ifBlank { Settings.DEFAULT_AUTOMATION_PROMPT }
+        Log.d(TAG, "onGenerate started with prompt: '$resolvedPrompt'")
+        onDismissPromptOverlay()
+        if (settings.activeProviderId == "local_ai") {
+            showGenerationWarning = true
+        } else {
+            performGeneration()
         }
     }
 
@@ -184,6 +211,13 @@ fun GalleryScreen(
         refreshRecents()
     }
 
+    LaunchedEffect(triggerDirectGeneration) {
+        if (triggerDirectGeneration) {
+            onDirectGenerationStarted()
+            onGenerate()
+        }
+    }
+
     GalleryScreenContent(
         modifier = modifier,
         wallpapers = wallpapers,
@@ -202,6 +236,8 @@ fun GalleryScreen(
             prefs.edit { putString(Settings.PREF_AUTOMATION_PROMPT, it) }
         },
         onGenerate = onGenerate,
+        showPromptOverlay = showPromptOverlay,
+        onDismissPromptOverlay = onDismissPromptOverlay,
         onSelectWallpaper = { selectedWallpaper = it },
         onDeleteWallpaper = { entity ->
             scope.launch {
@@ -222,7 +258,10 @@ fun GalleryScreen(
                 selectedWallpaper = null
             }
         },
-        onDismissErrorDialog = { showErrorDialog = null }
+        onDismissErrorDialog = { showErrorDialog = null },
+        showGenerationWarning = showGenerationWarning,
+        onProceedGeneration = performGeneration,
+        onDismissWarningDialog = { showGenerationWarning = false }
     )
 }
 
@@ -239,9 +278,14 @@ fun GalleryScreenContent(
     serviceState: ImageGenerationService.GenerationState,
     activeProviderId: String,
     showErrorDialog: String?,
+    showGenerationWarning: Boolean,
+    showPromptOverlay: Boolean,
     promptText: String,
     onPromptTextChange: (String) -> Unit,
     onGenerate: () -> Unit,
+    onDismissPromptOverlay: () -> Unit,
+    onProceedGeneration: () -> Unit,
+    onDismissWarningDialog: () -> Unit,
     onNavigateToProviders: () -> Unit,
     onSelectWallpaper: (WallpaperEntity?) -> Unit,
     onDeleteWallpaper: (WallpaperEntity) -> Unit,
@@ -249,6 +293,13 @@ fun GalleryScreenContent(
     onDismissErrorDialog: () -> Unit
 ) {
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+    val activeProvider = remember(activeProviderId) {
+        WallpaperProviderRegistry.get(activeProviderId)
+    }
+    val readiness = remember(activeProvider, isModelSelected) {
+        activeProvider?.isReady(context) ?: ProviderReadiness.NONE
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         if (isLoading) {
@@ -262,34 +313,36 @@ fun GalleryScreenContent(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = if (activeProviderId == "local_ai" && !isModelSelected) "AI Model Required" else "Generate Your First Wallpaper",
+                    text = if (readiness == ProviderReadiness.NONE) stringResource(R.string.ai_model_required) else stringResource(R.string.generate_first_wallpaper),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = if (activeProviderId == "local_ai" && !isModelSelected) {
-                        "To generate wallpapers using On-Device AI, you need to download a Stable Diffusion model first."
+                    text = if (readiness == ProviderReadiness.NONE) {
+                        stringResource(R.string.missing_model_desc)
+                    } else if (activeProviderId == "local_ai") {
+                        stringResource(R.string.generate_first_ai_desc, Settings.DEFAULT_AUTOMATION_PROMPT)
                     } else {
-                        "Generate your first wallpaper using on-device AI model with the default prompt: '${Settings.DEFAULT_AUTOMATION_PROMPT}'"
+                        stringResource(R.string.generate_first_other_desc, activeProvider?.let { context.getString(it.titleRes) } ?: stringResource(R.string.pref_wallpaper_source_title))
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(24.dp))
-                if (activeProviderId == "local_ai" && !isModelSelected) {
+                if (readiness == ProviderReadiness.NONE) {
                     Button(onClick = { onNavigateToProviders() }) {
-                        Icon(Icons.Default.List, contentDescription = "Go to Providers")
+                        Icon(Icons.Default.List, contentDescription = stringResource(R.string.tab_providers))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Download & Select Model")
+                        Text(stringResource(R.string.download_select_model))
                     }
                 } else {
                     Button(onClick = { onGenerate() }) {
-                        Icon(Icons.Default.Add, contentDescription = "Generate")
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.generate))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Generate")
+                        Text(stringResource(R.string.generate))
                     }
                 }
             }
@@ -297,13 +350,13 @@ fun GalleryScreenContent(
             Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Wallpapers",
+                    text = stringResource(R.string.tab_wallpapers),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Long press any wallpaper to apply it directly.",
+                    text = stringResource(R.string.wallpapers_summary),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                 )
@@ -341,14 +394,14 @@ fun GalleryScreenContent(
                                                 )
                                                 Spacer(modifier = Modifier.height(16.dp))
                                                 Text(
-                                                    text = "Loading Model...",
+                                                    text = stringResource(R.string.progress_loading_model),
                                                     style = MaterialTheme.typography.titleSmall,
                                                     fontWeight = FontWeight.Bold,
                                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                                                     textAlign = TextAlign.Center
                                                 )
                                                 Text(
-                                                    text = "Loading weights to internal storage",
+                                                    text = stringResource(R.string.progress_loading_weights),
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                                                     textAlign = TextAlign.Center
@@ -362,14 +415,14 @@ fun GalleryScreenContent(
                                                 )
                                                 Spacer(modifier = Modifier.height(16.dp))
                                                 Text(
-                                                    text = "Generating...",
+                                                    text = stringResource(R.string.progress_generating),
                                                     style = MaterialTheme.typography.titleSmall,
                                                     fontWeight = FontWeight.Bold,
                                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                                                     textAlign = TextAlign.Center
                                                 )
                                                 Text(
-                                                    text = "Step: ${state.currentStep}/${state.totalSteps}",
+                                                    text = stringResource(R.string.progress_step, state.currentStep, state.totalSteps),
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                                                     textAlign = TextAlign.Center
@@ -382,7 +435,7 @@ fun GalleryScreenContent(
                                                 )
                                                 Spacer(modifier = Modifier.height(16.dp))
                                                 Text(
-                                                    text = "Initializing...",
+                                                    text = stringResource(R.string.progress_initializing),
                                                     style = MaterialTheme.typography.titleSmall,
                                                     fontWeight = FontWeight.Bold,
                                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -399,14 +452,14 @@ fun GalleryScreenContent(
                                             )
                                             Spacer(modifier = Modifier.height(16.dp))
                                             Text(
-                                                text = "Generating...",
+                                                text = stringResource(R.string.progress_generating),
                                                 style = MaterialTheme.typography.titleSmall,
                                                 fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                                                 textAlign = TextAlign.Center
                                             )
                                             Text(
-                                                text = currentProviderState.message ?: "Creating seamless tile",
+                                                text = currentProviderState.message ?: stringResource(R.string.progress_seamless_tile),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                                                 textAlign = TextAlign.Center
@@ -418,19 +471,38 @@ fun GalleryScreenContent(
                                             )
                                             Spacer(modifier = Modifier.height(16.dp))
                                             Text(
-                                                text = "Generating...",
+                                                text = stringResource(R.string.progress_generating),
                                                 style = MaterialTheme.typography.titleSmall,
                                                 fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                                                 textAlign = TextAlign.Center
                                             )
                                             Text(
-                                                text = "Creating seamless tile",
+                                                text = stringResource(R.string.progress_seamless_tile),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                                                 textAlign = TextAlign.Center
                                             )
                                         }
+                                    }
+                                    Spacer(modifier = Modifier.height(24.dp))
+                                    Button(
+                                        onClick = {
+                                            val provider = WallpaperProviderRegistry.get(activeProviderId)
+                                                ?: WallpaperProviderRegistry.defaultProvider
+                                            provider.stop(context)
+                                        },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.error,
+                                            contentColor = MaterialTheme.colorScheme.onError
+                                        )
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_stop),
+                                            contentDescription = stringResource(R.string.stop)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(stringResource(R.string.stop))
                                     }
                                 }
                             }
@@ -470,7 +542,7 @@ fun GalleryScreenContent(
                                     Box(modifier = Modifier.fillMaxSize()) {
                                         Image(
                                             bitmap = bitmap.asImageBitmap(),
-                                            contentDescription = "Wallpaper preview",
+                                            contentDescription = stringResource(R.string.provider_preview_description),
                                             contentScale = ContentScale.Crop,
                                             modifier = Modifier.fillMaxSize()
                                         )
@@ -506,68 +578,7 @@ fun GalleryScreenContent(
             }
         }
 
-        // Bottom prompt input bar
-        val showPromptBar = !isLoading && !(wallpapers.isEmpty() && !isCurrentlyGenerating && activeProviderId == "local_ai" && !isModelSelected)
-        if (showPromptBar) {
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth(),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                shadowElevation = 8.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                        .navigationBarsPadding(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = promptText,
-                        onValueChange = onPromptTextChange,
-                        modifier = Modifier
-                            .weight(1f)
-                            .onFocusChanged { focusState ->
-                                if (focusState.isFocused && promptText == Settings.DEFAULT_AUTOMATION_PROMPT) {
-                                    onPromptTextChange("")
-                                }
-                            },
-                        placeholder = { Text("Describe your wallpaper...") },
-                        maxLines = 2,
-                        shape = MaterialTheme.shapes.medium,
-                        enabled = !isCurrentlyGenerating
-                    )
-                    FilledIconButton(
-                        onClick = {
-                            focusManager.clearFocus()
-                            if (isCurrentlyGenerating) return@FilledIconButton
-                            if (activeProviderId == "local_ai" && !isModelSelected) {
-                                onNavigateToProviders()
-                            } else {
-                                onGenerate()
-                            }
-                        },
-                        enabled = !isCurrentlyGenerating,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        if (isCurrentlyGenerating) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                        } else if (activeProviderId == "local_ai" && !isModelSelected) {
-                            Icon(Icons.Default.List, contentDescription = "Go to Providers")
-                        } else {
-                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Generate wallpaper")
-                        }
-                    }
-                }
-            }
-        }
-
-        // Preview Detail Modal Dialog
+        // Preview Detail Modal Dialog (Rendered as fullscreen Dialog window covering app bars)
         selectedWallpaper?.let { entity ->
             val isPreview = LocalInspectionMode.current
             val bitmap = remember(entity.filePath) {
@@ -582,7 +593,10 @@ fun GalleryScreenContent(
             if (bitmap != null) {
                 Dialog(
                     onDismissRequest = { onSelectWallpaper(null) },
-                    properties = DialogProperties(usePlatformDefaultWidth = false)
+                    properties = DialogProperties(
+                        usePlatformDefaultWidth = false,
+                        decorFitsSystemWindows = false
+                    )
                 ) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),
@@ -591,7 +605,7 @@ fun GalleryScreenContent(
                         Box(modifier = Modifier.fillMaxSize()) {
                             Image(
                                 bitmap = bitmap.asImageBitmap(),
-                                contentDescription = "Full wallpaper preview",
+                                contentDescription = stringResource(R.string.provider_preview_description),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()
                             )
@@ -599,10 +613,10 @@ fun GalleryScreenContent(
                             // Prompt overlay at the top
                             val previewText = entity.prompt.ifEmpty {
                                 when {
-                                    entity.providerId == "local_ai" || entity.filePath.contains("local_ai") -> "Local AI"
-                                    entity.providerId == "procedural" || entity.filePath.contains("tile_noise") || entity.filePath.contains("procedural") -> "Procedural"
-                                    entity.providerId == "random_color" || entity.filePath.contains("random_color") -> "Color"
-                                    else -> "Pattern"
+                                    entity.providerId == "local_ai" || entity.filePath.contains("local_ai") -> stringResource(R.string.provider_ai_title)
+                                    entity.providerId == "procedural" || entity.filePath.contains("tile_noise") || entity.filePath.contains("procedural") -> stringResource(R.string.provider_procedural_title)
+                                    entity.providerId == "random_color" || entity.filePath.contains("random_color") -> stringResource(R.string.provider_color_title)
+                                    else -> stringResource(R.string.wallpaper)
                                 }
                             }
                             Surface(
@@ -627,7 +641,7 @@ fun GalleryScreenContent(
                             Row(
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)
-                                    .padding(32.dp)
+                                    .padding(bottom = 80.dp, start = 16.dp, end = 16.dp)
                                     .fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                 verticalAlignment = Alignment.CenterVertically
@@ -641,9 +655,9 @@ fun GalleryScreenContent(
                                         onDeleteWallpaper(entity)
                                     }
                                 ) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Delete")
+                                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_wallpaper))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Delete")
+                                    Text(stringResource(R.string.delete_wallpaper))
                                 }
 
                                 Button(
@@ -655,9 +669,9 @@ fun GalleryScreenContent(
                                         onApplyWallpaper(bitmap)
                                     }
                                 ) {
-                                    Icon(Icons.Default.Done, contentDescription = "Set Wallpaper")
+                                    Icon(Icons.Default.Done, contentDescription = stringResource(R.string.set_wallpaper))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Apply Wallpaper")
+                                    Text(stringResource(R.string.set_wallpaper))
                                 }
                             }
                         }
@@ -669,13 +683,43 @@ fun GalleryScreenContent(
         showErrorDialog?.let { errorMessage ->
             AlertDialog(
                 onDismissRequest = onDismissErrorDialog,
-                title = { Text("Generation Failed") },
+                title = { Text(stringResource(R.string.dialog_failed_title)) },
                 text = { Text(errorMessage) },
                 confirmButton = {
                     TextButton(onClick = onDismissErrorDialog) {
-                        Text("OK")
+                        Text(stringResource(R.string.ok))
                     }
                 }
+            )
+        }
+
+        if (showGenerationWarning) {
+            AlertDialog(
+                onDismissRequest = onDismissWarningDialog,
+                title = { Text(stringResource(R.string.dialog_start_title)) },
+                text = { Text(stringResource(R.string.dialog_start_desc)) },
+                confirmButton = {
+                    Button(onClick = {
+                        onDismissWarningDialog()
+                        onProceedGeneration()
+                    }) {
+                        Text(stringResource(R.string.proceed))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = onDismissWarningDialog) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+            )
+        }
+
+        if (showPromptOverlay) {
+            PromptInputOverlay(
+                promptText = promptText,
+                onPromptTextChange = onPromptTextChange,
+                onDismiss = onDismissPromptOverlay,
+                onGenerate = onGenerate
             )
         }
     }
@@ -730,9 +774,14 @@ fun GalleryScreenPreview() {
             activeProviderId = "local_ai",
             isModelSelected = true,
             showErrorDialog = null,
+            showGenerationWarning = false,
+            showPromptOverlay = false,
             promptText = "Describe your wallpaper...",
             onPromptTextChange = {},
             onGenerate = {},
+            onDismissPromptOverlay = {},
+            onProceedGeneration = {},
+            onDismissWarningDialog = {},
             onNavigateToProviders = {},
             onSelectWallpaper = {},
             onDeleteWallpaper = {},
@@ -756,9 +805,14 @@ fun GalleryScreenEmptyPreview() {
             activeProviderId = "local_ai",
             isModelSelected = true,
             showErrorDialog = null,
+            showGenerationWarning = false,
+            showPromptOverlay = false,
             promptText = "",
             onPromptTextChange = {},
             onGenerate = {},
+            onDismissPromptOverlay = {},
+            onProceedGeneration = {},
+            onDismissWarningDialog = {},
             onNavigateToProviders = {},
             onSelectWallpaper = {},
             onDeleteWallpaper = {},
@@ -782,9 +836,14 @@ fun GalleryScreenNoModelPreview() {
             activeProviderId = "local_ai",
             isModelSelected = false,
             showErrorDialog = null,
+            showGenerationWarning = false,
+            showPromptOverlay = false,
             promptText = "",
             onPromptTextChange = {},
             onGenerate = {},
+            onDismissPromptOverlay = {},
+            onProceedGeneration = {},
+            onDismissWarningDialog = {},
             onNavigateToProviders = {},
             onSelectWallpaper = {},
             onDeleteWallpaper = {},
@@ -808,9 +867,14 @@ fun GalleryScreenGeneratingPreview() {
             activeProviderId = "local_ai",
             isModelSelected = true,
             showErrorDialog = null,
+            showGenerationWarning = false,
+            showPromptOverlay = false,
             promptText = "A cute fluffy kitten",
             onPromptTextChange = {},
             onGenerate = {},
+            onDismissPromptOverlay = {},
+            onProceedGeneration = {},
+            onDismissWarningDialog = {},
             onNavigateToProviders = {},
             onSelectWallpaper = {},
             onDeleteWallpaper = {},

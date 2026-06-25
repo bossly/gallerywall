@@ -43,6 +43,7 @@ class ImageGenerationService : Service() {
         const val EXTRA_MODEL_PATH = "extra_model_path"
         const val EXTRA_COLORS_HEX = "extra_colors_hex"
         const val EXTRA_AUTO_APPLY = "extra_auto_apply"
+        const val ACTION_STOP = "com.baysoft.gallerywall.ACTION_STOP"
 
         private val _state = MutableStateFlow<GenerationState>(GenerationState.Idle)
         val state: StateFlow<GenerationState> = _state.asStateFlow()
@@ -69,6 +70,16 @@ class ImageGenerationService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_STOP) {
+            Log.i(TAG, "Stop action received. Cancelling active job, unloading model, and stopping service.")
+            activeJob?.cancel()
+            _state.value = GenerationState.Idle
+            LocalMLEngine.getInstance().unloadModel()
+            stopForeground(true)
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
         val prompt = intent?.getStringExtra(EXTRA_PROMPT) ?: ""
         val modelPath = intent?.getStringExtra(EXTRA_MODEL_PATH) ?: ""
 
@@ -76,19 +87,19 @@ class ImageGenerationService : Service() {
 
         if (PromptFilter.containsInappropriateContent(prompt)) {
             Log.w(TAG, "Aborting generation: Inappropriate prompt detected.")
-            showErrorNotification("Inappropriate prompt detected. Please try another one.")
-            _state.value = GenerationState.Error("Inappropriate prompt detected.")
+            showErrorNotification(getString(R.string.error_inappropriate_prompt))
+            _state.value = GenerationState.Error(getString(R.string.error_inappropriate_prompt))
             stopSelf()
             return START_NOT_STICKY
         }
 
-        startForeground(NOTIFICATION_ID, buildNotification("Initializing service...", -2))
+        startForeground(NOTIFICATION_ID, buildNotification(getString(R.string.progress_initializing_service), -2))
 
         activeJob?.cancel()
         activeJob = serviceScope.launch {
             try {
                 _state.value = GenerationState.LoadingModel
-                updateNotification("Loading AI model directory...", -2)
+                updateNotification(getString(R.string.progress_loading_model_dir), -2)
 
                 val context = applicationContext
                 val engine = LocalMLEngine.getInstance()
@@ -104,26 +115,30 @@ class ImageGenerationService : Service() {
                 }
 
                 if (!modelLoaded) {
-                    val errorDetail = engine.lastLoadError ?: "Please download the model package first."
-                    throw IllegalStateException("Failed to load Stable Diffusion model. $errorDetail")
+                    val errorDetail = engine.lastLoadError ?: getString(R.string.error_download_model_first)
+                    throw IllegalStateException(getString(R.string.error_failed_to_load_model, errorDetail))
                 }
 
-                updateNotification("Generating wallpaper...", -2)
+                updateNotification(getString(R.string.progress_generating_wallpaper), -2)
                 
                 val prefs = PreferenceManager.getDefaultSharedPreferences(context)
                 val settings = Settings(prefs)
 
                 // 2. Perform progressive generation on Dispatchers.Default
                 val rawTile = withContext(Dispatchers.Default) {
+                    val coroutineScope = this
                     engine.generateTileProgressively(
                         prompt = prompt,
                         steps = 20,
                         seed = -1,
                         supportTransparency = false
                     ) { step, total ->
+                        if (!coroutineScope.isActive) {
+                            throw CancellationException("Generation cancelled")
+                        }
                         val progress = step.toFloat() / total.toFloat()
                         _state.value = GenerationState.Generating(progress, step, total)
-                        updateNotification("Generating image: step $step/$total", step, total)
+                        updateNotification(getString(R.string.progress_generating_image_step, step, total), step, total)
                     }
                 }
 
@@ -184,8 +199,8 @@ class ImageGenerationService : Service() {
                 Log.i(TAG, "Image generation cancelled")
             } catch (e: Exception) {
                 Log.e(TAG, "Generation service failed", e)
-                _state.value = GenerationState.Error(e.message ?: "Image generation failed")
-                showErrorNotification(e.message ?: "Image generation failed")
+                _state.value = GenerationState.Error(e.message ?: getString(R.string.error_generation_failed))
+                showErrorNotification(e.message ?: getString(R.string.error_generation_failed))
                 stopSelf()
             }
         }
@@ -197,6 +212,7 @@ class ImageGenerationService : Service() {
         super.onDestroy()
         activeJob?.cancel()
         serviceScope.cancel()
+        LocalMLEngine.getInstance().unloadModel()
     }
 
     private fun buildNotification(contentText: String, progress: Int = -1, max: Int = -1): Notification {
@@ -206,12 +222,23 @@ class ImageGenerationService : Service() {
             PendingIntent.FLAG_IMMUTABLE
         )
 
+        val stopIntent = Intent(this, ImageGenerationService::class.java).apply {
+            action = ACTION_STOP
+        }
+        val stopPendingIntent = PendingIntent.getService(
+            this,
+            1,
+            stopIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("GalleryWall On-Device AI")
+            .setContentTitle(getString(R.string.notification_title_ai))
             .setContentText(contentText)
             .setSmallIcon(R.drawable.icon_notification)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
+            .addAction(R.drawable.ic_stop, getString(R.string.stop), stopPendingIntent)
 
         if (max > 0 && progress >= 0) {
             builder.setProgress(max, progress, false)
@@ -235,7 +262,7 @@ class ImageGenerationService : Service() {
         )
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("GalleryWall AI Failed")
+            .setContentTitle(getString(R.string.notification_title_ai_failed))
             .setContentText(message)
             .setSmallIcon(R.drawable.icon_notification)
             .setContentIntent(pendingIntent)
@@ -247,8 +274,8 @@ class ImageGenerationService : Service() {
     }
 
     private fun createNotificationChannel() {
-        val name = "AI Image Generation"
-        val descriptionText = "Notifications for on-device AI wallpaper generation progress"
+        val name = getString(R.string.channel_ai_name)
+        val descriptionText = getString(R.string.channel_ai_desc)
         val importance = NotificationManager.IMPORTANCE_LOW
         val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
             description = descriptionText

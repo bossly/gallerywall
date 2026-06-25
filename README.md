@@ -61,5 +61,3 @@ By default, GalleryWall uses local on-device models (such as Stable Diffusion).
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
-
-

@@ -17,13 +17,20 @@ import java.util.Random
 object ColorProvider : WallpaperProvider {
     private const val TAG = "ColorProvider"
 
+    @Volatile
+    private var isCancelled = false
+
     override val id: String = "random_color"
 
     override val titleRes: Int = R.string.provider_color_title
     override val summaryRes: Int = R.string.provider_color_summary
 
     override fun generateBitmap(context: Context, onStateUpdate: (ProviderState) -> Unit): Bitmap {
+        isCancelled = false
         for (i in 1..5) {
+            if (isCancelled) {
+                throw java.util.concurrent.CancellationException("Generation stopped by user")
+            }
             val progress = i / 5.0f
             onStateUpdate(DefaultProviderState(
                 progress = progress,
@@ -32,8 +39,11 @@ object ColorProvider : WallpaperProvider {
             try {
                 Thread.sleep(1000)
             } catch (e: InterruptedException) {
-                // ignore
+                throw java.util.concurrent.CancellationException("Generation interrupted")
             }
+        }
+        if (isCancelled) {
+            throw java.util.concurrent.CancellationException("Generation stopped by user")
         }
 
         val metrics = context.resources.displayMetrics
@@ -68,4 +78,11 @@ object ColorProvider : WallpaperProvider {
         onStateUpdate(finalState)
         return bitmap
     }
+
+    override fun isReady(context: Context): ProviderReadiness = ProviderReadiness.PROMPT
+
+    override fun stop(context: Context) {
+        isCancelled = true
+    }
 }
+

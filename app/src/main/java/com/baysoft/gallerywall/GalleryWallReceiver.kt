@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.util.Log
+import androidx.preference.PreferenceManager
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -25,6 +26,11 @@ class GalleryWallReceiver : BroadcastReceiver() {
                 action = GalleryWall.ACTION_APPLY_WALLPAPER
                 putExtra(GalleryWall.EXTRA_FILE_PATH, filePath)
             }
+
+        fun stopIntent(context: Context): Intent =
+            Intent(context, GalleryWallReceiver::class.java).apply {
+                action = GalleryWall.ACTION_STOP_GENERATION
+            }
     }
 
     override fun onReceive(context: Context?, intent: Intent?) {
@@ -32,6 +38,19 @@ class GalleryWallReceiver : BroadcastReceiver() {
             Intent.ACTION_BOOT_COMPLETED -> {
                 context?.let {
                     GalleryWall.schedule(it)
+                }
+            }
+            GalleryWall.ACTION_STOP_GENERATION -> {
+                context?.let { ctx ->
+                    Log.i("GalleryWallReceiver", "Stop generation broadcast received.")
+                    val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
+                    val settings = Settings(prefs)
+                    val providerId = settings.activeProviderId
+                    val provider = com.baysoft.gallerywall.provider.WallpaperProviderRegistry.get(providerId)
+                    provider?.stop(ctx)
+                    
+                    val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    nm.cancel(GalleryWallNotifications.PROGRESS_NOTIFICATION_ID)
                 }
             }
             GalleryWall.ACTION_APPLY_WALLPAPER -> {

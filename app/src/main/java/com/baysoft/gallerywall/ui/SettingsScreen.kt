@@ -1,6 +1,10 @@
 package com.baysoft.gallerywall.ui
 
+import android.Manifest
+import android.os.Build
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -16,10 +20,12 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
 import com.baysoft.gallerywall.GalleryWall
+import com.baysoft.gallerywall.R
 import com.baysoft.gallerywall.Settings
 import com.baysoft.gallerywall.ui.theme.GalleryWallTheme
 
@@ -49,6 +55,12 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
 
     var showNoModelWarning by remember { mutableStateOf(false) }
 
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        // Permission result handled by system, nothing specific needed here for now
+    }
+
     // Helper to persist and reschedule WorkManager tasks
     val saveAndReschedule = {
         if (!isPreview && prefs != null) {
@@ -71,23 +83,22 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     if (showNoModelWarning) {
         AlertDialog(
             onDismissRequest = { showNoModelWarning = false },
-            title = { Text("No Provider Activated") },
-            text = { Text("You've selected 'On-Device AI' as your wallpaper provider, but no model is currently downloaded or active. Automation might fail until you setup a model in the Providers tab.") },
+            title = { Text(stringResource(R.string.dialog_no_model_title)) },
+            text = { Text(stringResource(R.string.dialog_no_model_desc)) },
             confirmButton = {
                 TextButton(
                     onClick = {
                         showNoModelWarning = false
                         autoEnabled = true
                         saveAndReschedule()
-                        Toast.makeText(context, "Auto-Wallpaper Enabled", Toast.LENGTH_SHORT).show()
                     }
                 ) {
-                    Text("Enable Anyway")
+                    Text(stringResource(R.string.enable_anyway))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showNoModelWarning = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -102,9 +113,8 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             } else {
                 autoEnabled = it
                 saveAndReschedule()
-                if (!isPreview) {
-                    val msg = if (it) "Auto-Wallpaper Enabled" else "Auto-Wallpaper Disabled"
-                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                if (it && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
             }
         },
@@ -178,13 +188,13 @@ fun SettingsScreenContent(
     ) {
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Settings",
+            text = stringResource(R.string.title_settings),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
         )
         Text(
-            text = "Configure app-wide preferences, rotation frequency, and execution constraints.",
+            text = stringResource(R.string.settings_summary),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
         )
@@ -206,12 +216,12 @@ fun SettingsScreenContent(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Enable Auto-Wallpaper Switcher",
+                        text = stringResource(R.string.pref_auto_wallpaper_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Automatically update wallpaper on a period you define.",
+                        text = stringResource(R.string.pref_auto_wallpaper_summary),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                     )
@@ -240,12 +250,12 @@ fun SettingsScreenContent(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Apply automatically",
+                            text = stringResource(R.string.pref_auto_apply_wallpaper_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Change wallpaper immediately when automation runs.",
+                            text = stringResource(R.string.pref_auto_apply_wallpaper_summary),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                         )
@@ -265,12 +275,12 @@ fun SettingsScreenContent(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Wallpaper Prompt",
+                        text = stringResource(R.string.pref_prompt_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Define standard keywords used for background generations.",
+                        text = stringResource(R.string.pref_prompt_summary),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         modifier = Modifier.padding(bottom = 12.dp)
@@ -280,7 +290,7 @@ fun SettingsScreenContent(
                         value = promptTemplate,
                         onValueChange = onPromptTemplateChange,
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Prompt") },
+                        label = { Text(stringResource(R.string.pref_prompt_label)) },
                         keyboardOptions = KeyboardOptions(
                             imeAction = ImeAction.Done,
                             keyboardType = KeyboardType.Text
@@ -299,12 +309,12 @@ fun SettingsScreenContent(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Schedule Interval",
+                        text = stringResource(R.string.pref_interval_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Adjust the interval duration below to set how often background generations occur.",
+                        text = stringResource(R.string.pref_interval_summary),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         modifier = Modifier.padding(bottom = 12.dp)
@@ -321,13 +331,22 @@ fun SettingsScreenContent(
                     val steps = (maxVal - minVal).toInt() - 1
                     val currentValue = (periodValue.toFloatOrNull() ?: 6f).coerceIn(minVal, maxVal)
 
+                    val unitRes = when (periodUnit) {
+                        "HOURS" -> R.string.unit_hours
+                        "DAYS" -> R.string.unit_days
+                        "WEEKS" -> R.string.unit_weeks
+                        "MONTHS" -> R.string.unit_months
+                        else -> R.string.unit_hours
+                    }
+                    val unitStr = stringResource(unitRes)
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "Every ${currentValue.toInt()} ${periodUnit.lowercase().replaceFirstChar { it.uppercase() }}",
+                            text = stringResource(R.string.pref_interval_value_format, currentValue.toInt(), unitStr),
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -340,7 +359,7 @@ fun SettingsScreenContent(
                                 onClick = { dropdownExpanded = true },
                                 shape = MaterialTheme.shapes.small
                             ) {
-                                Text("Unit: $periodUnit")
+                                Text(stringResource(R.string.pref_interval_unit_label, unitStr))
                             }
                             DropdownMenu(
                                 expanded = dropdownExpanded,
@@ -348,8 +367,15 @@ fun SettingsScreenContent(
                             ) {
                                 val units = listOf("HOURS", "DAYS", "WEEKS", "MONTHS")
                                 units.forEach { unit ->
+                                    val dropdownUnitRes = when (unit) {
+                                        "HOURS" -> R.string.unit_hours
+                                        "DAYS" -> R.string.unit_days
+                                        "WEEKS" -> R.string.unit_weeks
+                                        "MONTHS" -> R.string.unit_months
+                                        else -> R.string.unit_hours
+                                    }
                                     DropdownMenuItem(
-                                        text = { Text(unit) },
+                                        text = { Text(stringResource(dropdownUnitRes)) },
                                         onClick = {
                                             dropdownExpanded = false
                                             // Adjust period value if it exceeds max for new unit
@@ -396,12 +422,12 @@ fun SettingsScreenContent(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Execution Constraints",
+                        text = stringResource(R.string.execution_constraints),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Configure conditions to preserve battery and processor performance.",
+                        text = stringResource(R.string.execution_constraints_summary),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         modifier = Modifier.padding(bottom = 16.dp)
@@ -413,7 +439,7 @@ fun SettingsScreenContent(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Only When Device is Charging", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.constraint_charging_only), style = MaterialTheme.typography.bodyMedium)
                         Switch(
                             checked = constraintCharging,
                             onCheckedChange = onConstraintChargingChange
@@ -426,7 +452,7 @@ fun SettingsScreenContent(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Only When Device is Idle", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.constraint_idle_only), style = MaterialTheme.typography.bodyMedium)
                         Switch(
                             checked = constraintIdle,
                             onCheckedChange = onConstraintIdleChange
@@ -444,12 +470,12 @@ fun SettingsScreenContent(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "Post-processing Filter",
+                    text = stringResource(R.string.pref_filter_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Apply a visual filter to the generated wallpaper.",
+                    text = stringResource(R.string.pref_filter_summary),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     modifier = Modifier.padding(bottom = 12.dp)
@@ -457,11 +483,11 @@ fun SettingsScreenContent(
 
                 var filterDropdownExpanded by remember { mutableStateOf(false) }
                 val filterLabels = mapOf(
-                    "none" to "None",
-                    "bw" to "Black & White",
-                    "sepia" to "Sepia",
-                    "invert" to "Invert",
-                    "blur" to "Blur"
+                    "none" to R.string.filter_none,
+                    "bw" to R.string.filter_bw,
+                    "sepia" to R.string.filter_sepia,
+                    "invert" to R.string.filter_invert,
+                    "blur" to R.string.filter_blur
                 )
 
                 Box(modifier = Modifier.fillMaxWidth()) {
@@ -470,16 +496,17 @@ fun SettingsScreenContent(
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.small
                     ) {
-                        Text(text = "Filter: ${filterLabels[postProcessingFilter] ?: "None"}")
+                        val activeFilterRes = filterLabels[postProcessingFilter] ?: R.string.filter_none
+                        Text(text = stringResource(R.string.filter_label_format, stringResource(activeFilterRes)))
                     }
                     DropdownMenu(
                         expanded = filterDropdownExpanded,
                         onDismissRequest = { filterDropdownExpanded = false },
                         modifier = Modifier.fillMaxWidth(0.9f)
                     ) {
-                        filterLabels.forEach { (value, label) ->
+                        filterLabels.forEach { (value, labelRes) ->
                             DropdownMenuItem(
-                                text = { Text(label) },
+                                text = { Text(stringResource(labelRes)) },
                                 onClick = {
                                     onPostProcessingFilterChange(value)
                                     filterDropdownExpanded = false

@@ -55,8 +55,6 @@
     <string name="provider_configure">Configure</string>
     <string name="provider_preview_description">Wallpaper preview</string>
     <string name="provider_preview_thumbnail">Provider preview</string>
-    <string name="color_hex_hint">Hex (#RRGGBB)</string>
-    <string name="color_rgb_sliders">RGB</string>
 
     <!-- Home/Wallpapers -->
     <string name="wallpaper">Wallpaper</string>
@@ -72,9 +70,115 @@
 
     <!-- Tiling and AI Providers -->
     <string name="provider_procedural_title">Procedural Pattern</string>
-    <string name="provider_procedural_summary">Generate beautiful, organic Memphis geometric and interlocking stone tiled patterns locally.</string>
+
     <string name="provider_ai_title">On-Device AI Generator</string>
     <string name="provider_ai_summary">Synthesize stunning art wallpapers completely offline from text prompts using tiny local AI models.</string>
     <string name="provider_color_title">Random Color</string>
     <string name="provider_color_summary">Generate vibrant random gradient wallpapers instantly. Available in debug builds for quick testing.</string>
+
+    <!-- Extra General/Dialog Strings -->
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="close">Close</string>
+    <string name="retry">Retry</string>
+    <string name="stop">Stop</string>
+    <string name="proceed">Proceed</string>
+    <string name="selected">Selected</string>
+    <string name="download">Download</string>
+    <string name="generate">Generate</string>
+
+    <!-- MainScreen/Navigation -->
+    <string name="generate_wallpaper">Generate wallpaper</string>
+    <string name="generate_wallpaper_directly">Generate wallpaper directly</string>
+
+    <!-- PromptInputOverlay -->
+    <string name="new_wallpaper">New Wallpaper</string>
+    <string name="prompt_placeholder">Describe your wallpaper…</string>
+
+    <!-- SettingsScreen -->
+    <string name="settings_summary">Configure app-wide preferences, rotation frequency, and execution constraints.</string>
+    <string name="dialog_no_model_title">No Model Activated</string>
+    <string name="dialog_no_model_desc">You\'ve selected \'On-Device AI\' as your wallpaper provider, but no model is currently downloaded or active. Automation might fail until you setup a model in the Providers tab.</string>
+    <string name="enable_anyway">Enable Anyway</string>
+    <string name="pref_auto_wallpaper_title">Enable Auto-Wallpaper Switcher</string>
+    <string name="pref_auto_wallpaper_summary">Automatically update wallpaper on a period you define.</string>
+    <string name="pref_prompt_title">Wallpaper Prompt</string>
+    <string name="pref_prompt_summary">Define standard keywords used for background generations.</string>
+    <string name="pref_prompt_label">Prompt</string>
+    <string name="pref_interval_summary">Adjust the interval duration below to set how often background generations occur.</string>
+    <string name="pref_interval_value_format">Every %1$d %2$s</string>
+    <string name="pref_interval_unit_label">Unit: %1$s</string>
+    <string name="unit_hours">HOURS</string>
+    <string name="unit_days">DAYS</string>
+    <string name="unit_weeks">WEEKS</string>
+    <string name="unit_months">MONTHS</string>
+    <string name="execution_constraints">Execution Constraints</string>
+    <string name="execution_constraints_summary">Configure conditions to preserve battery and processor performance.</string>
+    <string name="constraint_charging_only">Only When Device is Charging</string>
+    <string name="constraint_idle_only">Only When Device is Idle</string>
+    <string name="pref_filter_summary">Apply a visual filter to the generated wallpaper.</string>
+    <string name="filter_label_format">Filter: %1$s</string>
+
+    <!-- ProvidersScreen -->
+    <string name="wallpaper_providers_title">Wallpaper Providers</string>
+    <string name="wallpaper_providers_summary">Choose a wallpaper generation engine.</string>
+    <string name="on_device_ai_models">On-Device AI Models</string>
+    <string name="import_zip">Import ZIP</string>
+    <string name="model_size">Size: %1$s</string>
+    <string name="model_active_loaded">Active &amp; Loaded</string>
+    <string name="model_downloaded">Downloaded</string>
+    <string name="active_model_desc">Active Model</string>
+    <string name="delete_model_desc">Delete Model Folder</string>
+    <string name="download_desc">Download</string>
+    <string name="toast_free_space_import">Not enough free space to import model (needs %1$s)</string>
+    <string name="toast_importing_unzipping">Importing and unzipping model zip…</string>
+    <string name="toast_model_imported">Model imported and activated!</string>
+    <string name="toast_import_failed">Failed to import model: %1$s</string>
+    <string name="toast_model_active_set">Active model set to: %1$s</string>
+    <string name="toast_free_space_download">Not enough free space (needs %1$s)</string>
+    <string name="toast_model_downloaded">Model downloaded and activated!</string>
+    <string name="toast_download_failed">Failed to download model: %1$s</string>
+    <string name="model_sd_name">Stable Diffusion v1.5 (Lite)</string>
+    <string name="model_sd_description">On-device Stable Diffusion v1.5 text-to-image model. Zipped package contains pre-converted sub-model components optimized for MediaPipe Tasks Vision.</string>
+    <string name="custom_model_description">Imported custom on-device Stable Diffusion model.</string>
+
+    <!-- GalleryScreen -->
+    <string name="ai_model_required">AI Model Required</string>
+    <string name="generate_first_wallpaper">Generate Your First Wallpaper</string>
+    <string name="missing_model_desc">To generate wallpapers using On-Device AI, you need to download a Stable Diffusion model first.</string>
+    <string name="generate_first_ai_desc">Generate your first wallpaper using on-device AI model with the default prompt: \'%1$s\'</string>
+    <string name="generate_first_other_desc">Generate your first wallpaper directly using %1$s.</string>
+    <string name="download_select_model">Download &amp; Select Model</string>
+    <string name="wallpapers_summary">Long press any wallpaper to apply it directly.</string>
+    <string name="progress_loading_model">Loading Model…</string>
+    <string name="progress_loading_weights">Loading weights to internal storage</string>
+    <string name="progress_generating">Generating…</string>
+    <string name="progress_step">Step: %1$d/%2$d</string>
+    <string name="progress_initializing">Initializing…</string>
+    <string name="progress_seamless_tile">Creating seamless tile</string>
+    <string name="dialog_failed_title">Generation Failed</string>
+    <string name="dialog_start_title">Start Generation?</string>
+    <string name="dialog_start_desc">Generating a new wallpaper using on-device AI may take 2-10 minutes depending on your device\'s performance. The system may slow down during this process.</string>
+
+    <!-- Notifications and Service -->
+    <string name="notification_title_generation">GalleryWall Generation</string>
+    <string name="error_inappropriate_prompt">Inappropriate prompt detected. Please try another one.</string>
+    <string name="progress_initializing_service">Initializing service…</string>
+    <string name="progress_loading_model_dir">Loading AI model directory…</string>
+    <string name="error_download_model_first">Please download the model package first.</string>
+    <string name="error_failed_to_load_model">Failed to load Stable Diffusion model: %1$s</string>
+    <string name="progress_generating_wallpaper">Generating wallpaper…</string>
+    <string name="progress_generating_image_step">Generating image: step %1$d/%2$d</string>
+    <string name="error_generation_failed">Image generation failed</string>
+    <string name="notification_title_ai">GalleryWall On-Device AI</string>
+    <string name="notification_title_ai_failed">GalleryWall AI Failed</string>
+    <string name="channel_ai_name">AI Image Generation</string>
+    <string name="channel_ai_desc">Notifications for on-device AI wallpaper generation progress</string>
+
+    <!-- Model download progress states -->
+    <string name="progress_verifying">Verifying…</string>
+    <string name="progress_extracting">Extracting…</string>
+    <string name="progress_downloading">Downloading…</string>
+    <string name="progress_downloading_percent">Downloading (%1$d%%)</string>
+    <string name="error_prefix">Error: %1$s</string>
 </resources>
