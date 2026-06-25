@@ -150,7 +150,7 @@ class GalleryWall {
                     val progress = (state.progress * 100).toInt()
                     val notification = GalleryWallNotifications.buildProgressNotification(
                         context,
-                        state.message ?: "Generating wallpaper...",
+                        state.message ?: context.getString(R.string.progress_generating_wallpaper),
                         progress = progress,
                         max = 100
                     )

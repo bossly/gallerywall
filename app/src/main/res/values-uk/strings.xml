@@ -51,8 +51,6 @@
     <string name="provider_preview_description">Попередній перегляд шпалер</string>
     <string name="provider_preview_thumbnail">Попередній перегляд джерела</string>
 
-    <string name="color_hex_hint">Hex (#RRGGBB)</string>
-    <string name="color_rgb_sliders">RGB</string>
 
     <string name="delete_wallpaper">Видалити</string>
 
@@ -64,7 +62,112 @@
 
     <!-- Tiling and AI Providers -->
     <string name="provider_procedural_title">Процедурний візерунок</string>
-    <string name="provider_procedural_summary">Генеруйте красиві безшовні геометричні візерунки Memphis та мозаїку з каменю локально.</string>
+
     <string name="provider_ai_title">Локальний ШІ-генератор</string>
     <string name="provider_ai_summary">Створюйте чудові піксельні шпалери повністю офлайн за текстовими підказками за допомогою локальних моделей ШІ.</string>
+
+    <!-- Extra General/Dialog Strings -->
+    <string name="ok">OK</string>
+    <string name="cancel">Скасувати</string>
+    <string name="close">Закрити</string>
+    <string name="retry">Спробувати знову</string>
+    <string name="stop">Зупинити</string>
+    <string name="proceed">Продовжити</string>
+    <string name="selected">Вибрано</string>
+    <string name="download">Завантажити</string>
+
+    <!-- MainScreen/Navigation -->
+    <string name="generate_wallpaper">Згенерувати шпалери</string>
+    <string name="generate_wallpaper_directly">Згенерувати шпалери напряму</string>
+
+    <!-- PromptInputOverlay -->
+    <string name="new_wallpaper">Нові шпалери</string>
+    <string name="prompt_placeholder">Опишіть ваші шпалери…</string>
+
+    <!-- SettingsScreen -->
+    <string name="settings_summary">Налаштуйте загальні параметри програми, частоту зміни та умови виконання.</string>
+    <string name="dialog_no_model_title">Модель не активована</string>
+    <string name="dialog_no_model_desc">Ви вибрали \'Локальний ШІ\' як джерело шпалер, але жодна модель зараз не завантажена чи не активована. Автоматизація може не працювати, поки ви не налаштуєте модель на вкладці Джерела.</string>
+    <string name="enable_anyway">Увімкнути все одно</string>
+    <string name="pref_auto_wallpaper_title">Увімкнути автозміну шпалер</string>
+    <string name="pref_auto_wallpaper_summary">Автоматично оновлювати шпалери за визначеним вами інтервалом.</string>
+    <string name="pref_prompt_title">Шаблон запиту</string>
+    <string name="pref_prompt_summary">Визначте стандартні ключові слова для фонової генерації.</string>
+    <string name="pref_prompt_label">Запит</string>
+    <string name="pref_interval_summary">Налаштуйте тривалість інтервалу нижче, щоб встановити частоту фонової генерації.</string>
+    <string name="pref_interval_value_format">Кожні %1$d %2$s</string>
+    <string name="pref_interval_unit_label">Одиниця: %1$s</string>
+    <string name="unit_hours">ГОДИН</string>
+    <string name="unit_days">ДНІВ</string>
+    <string name="unit_weeks">ТИЖНІВ</string>
+    <string name="unit_months">МІСЯЦІВ</string>
+    <string name="execution_constraints">Умови виконання</string>
+    <string name="execution_constraints_summary">Налаштуйте умови для збереження батареї та продуктивності процесора.</string>
+    <string name="constraint_charging_only">Тільки коли пристрій заряджається</string>
+    <string name="constraint_idle_only">Тільки коли пристрій не використовується</string>
+    <string name="pref_filter_summary">Застосувати візуальний фільтр до згенерованих шпалер.</string>
+    <string name="filter_label_format">Фільтр: %1$s</string>
+
+    <!-- ProvidersScreen -->
+    <string name="wallpaper_providers_title">Джерела шпалер</string>
+    <string name="wallpaper_providers_summary">Оберіть механізм генерації шпалер.</string>
+    <string name="on_device_ai_models">Моделі ШІ на пристрої</string>
+    <string name="import_zip">Імпортувати ZIP</string>
+    <string name="model_size">Розмір: %1$s</string>
+    <string name="model_active_loaded">Активна та завантажена</string>
+    <string name="model_downloaded">Завантажено</string>
+    <string name="active_model_desc">Активна модель</string>
+    <string name="delete_model_desc">Видалити папку моделі</string>
+    <string name="download_desc">Завантажити</string>
+    <string name="toast_free_space_import">Недостатньо вільного місця для імпорту моделі (потрібно %1$s)</string>
+    <string name="toast_importing_unzipping">Імпорт та розпакування zip моделі…</string>
+    <string name="toast_model_imported">Модель імпортована та активована!</string>
+    <string name="toast_import_failed">Не вдалося імпортувати модель: %1$s</string>
+    <string name="toast_model_active_set">Активну модель встановлено на: %1$s</string>
+    <string name="toast_free_space_download">Недостатньо вільного місця (потрібно %1$s)</string>
+    <string name="toast_model_downloaded">Модель завантажена та активована!</string>
+    <string name="toast_download_failed">Не вдалося завантажити модель: %1$s</string>
+    <string name="model_sd_name">Stable Diffusion v1.5 (Lite)</string>
+    <string name="model_sd_description">Модель перетворення тексту в зображення Stable Diffusion v1.5 на пристрої. Архів містить попередньо конвертовані компоненти підмоделей, оптимізовані для MediaPipe Tasks Vision.</string>
+    <string name="custom_model_description">Імпортована власна модель Stable Diffusion.</string>
+
+    <!-- GalleryScreen -->
+    <string name="ai_model_required">Потрібна модель ШІ</string>
+    <string name="generate_first_wallpaper">Згенеруйте свої перші шпалери</string>
+    <string name="missing_model_desc">Щоб генерувати шпалери за допомогою локального ШІ, вам потрібно спочатку завантажити модель Stable Diffusion.</string>
+    <string name="generate_first_ai_desc">Згенеруйте свої перші шпалери за допомогою локальної моделі ШІ за замовчуванням: \'%1$s\'</string>
+    <string name="generate_first_other_desc">Згенеруйте свої перші шпалери безпосередньо за допомогою %1$s.</string>
+    <string name="download_select_model">Завантажити та вибрати модель</string>
+    <string name="wallpapers_summary">Затисніть будь-які шпалери, щоб застосувати їх.</string>
+    <string name="progress_loading_model">Завантаження моделі…</string>
+    <string name="progress_loading_weights">Завантаження ваг у внутрішню пам\'ять</string>
+    <string name="progress_generating">Генерація…</string>
+    <string name="progress_step">Крок: %1$d/%2$d</string>
+    <string name="progress_initializing">Ініціалізація…</string>
+    <string name="progress_seamless_tile">Створення безшовного плиточного зображення</string>
+    <string name="dialog_failed_title">Помилка генерації</string>
+    <string name="dialog_start_title">Почати генерацію?</string>
+    <string name="dialog_start_desc">Генерація нових шпалер за допомогою локального ШІ може зайняти 2-10 хвилин залежно від продуктивності вашого пристрою. Протягом цього процесу система може уповільнити роботу.</string>
+
+    <!-- Notifications and Service -->
+    <string name="notification_title_generation">Генерація GalleryWall</string>
+    <string name="error_inappropriate_prompt">Виявлено неприпустимий запит. Будь ласка, спробуйте інший.</string>
+    <string name="progress_initializing_service">Ініціалізація служби…</string>
+    <string name="progress_loading_model_dir">Завантаження папки моделі ШІ…</string>
+    <string name="error_download_model_first">Будь ласка, спочатку завантажте пакет моделі.</string>
+    <string name="error_failed_to_load_model">Не вдалося завантажити модель Stable Diffusion: %1$s</string>
+    <string name="progress_generating_wallpaper">Генерація шпалер…</string>
+    <string name="progress_generating_image_step">Генерація зображення: крок %1$d/%2$d</string>
+    <string name="error_generation_failed">Помилка генерації зображення</string>
+    <string name="notification_title_ai">Локальний ШІ GalleryWall</string>
+    <string name="notification_title_ai_failed">Помилка ШІ GalleryWall</string>
+    <string name="channel_ai_name">Генерація зображень ШІ</string>
+    <string name="channel_ai_desc">Повідомлення про прогрес генерації шпалер локальним ШІ</string>
+
+    <!-- Model download progress states -->
+    <string name="progress_verifying">Перевірка…</string>
+    <string name="progress_extracting">Розпакування…</string>
+    <string name="progress_downloading">Завантаження…</string>
+    <string name="progress_downloading_percent">Завантаження (%1$d%%)</string>
+    <string name="error_prefix">Помилка: %1$s</string>
 </resources>

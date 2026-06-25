@@ -18,16 +18,19 @@ import androidx.compose.ui.unit.dp
 import android.content.SharedPreferences
 import androidx.compose.ui.res.painterResource
 import androidx.preference.PreferenceManager
+import androidx.annotation.StringRes
+import androidx.compose.ui.res.stringResource
+import com.baysoft.gallerywall.R
 import com.baysoft.gallerywall.Settings
 import com.baysoft.gallerywall.provider.ProviderReadiness
 import com.baysoft.gallerywall.provider.WallpaperProviderRegistry
 import com.baysoft.gallerywall.ui.theme.GalleryWallTheme
 import java.io.File
 
-enum class GalleryTab(val title: String, val icon: ImageVector) {
-    GALLERY("Gallery", Icons.Default.Home),
-    PROVIDERS("Providers", Icons.Default.List),
-    SETTINGS("Settings", Icons.Default.Settings)
+enum class GalleryTab(@StringRes val titleRes: Int, val icon: ImageVector) {
+    GALLERY(R.string.tab_wallpapers, Icons.Default.Home),
+    PROVIDERS(R.string.tab_providers, Icons.Default.List),
+    SETTINGS(R.string.tab_settings, Icons.Default.Settings)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,8 +76,8 @@ fun MainScreen() {
                     NavigationBarItem(
                         selected = selectedTab == tab,
                         onClick = { selectedTab = tab },
-                        icon = { Icon(tab.icon, contentDescription = tab.title) },
-                        label = { Text(tab.title) }
+                        icon = { Icon(tab.icon, contentDescription = stringResource(tab.titleRes)) },
+                        label = { Text(stringResource(tab.titleRes)) }
                     )
                 }
             }
@@ -92,11 +95,11 @@ fun MainScreen() {
                     modifier = Modifier.testTag("GenerateFAB")
                 ) {
                     if (readiness == ProviderReadiness.PROMPT) {
-                        Icon(Icons.Default.Create, contentDescription = "Generate wallpaper")
+                        Icon(Icons.Default.Create, contentDescription = stringResource(R.string.generate_wallpaper))
                     } else {
                         Icon(
                             painter = painterResource(id = com.baysoft.gallerywall.R.drawable.ic_dice),
-                            contentDescription = "Generate wallpaper directly"
+                            contentDescription = stringResource(R.string.generate_wallpaper_directly)
                         )
                     }
                 }

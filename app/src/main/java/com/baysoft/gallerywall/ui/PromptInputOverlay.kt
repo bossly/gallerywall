@@ -14,10 +14,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.baysoft.gallerywall.R
 
 @Composable
 fun PromptInputOverlay(
@@ -65,10 +67,10 @@ fun PromptInputOverlay(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Close")
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
                         }
                         Text(
-                            text = "New Wallpaper",
+                            text = stringResource(R.string.new_wallpaper),
                             style = MaterialTheme.typography.titleMedium
                         )
                         IconButton(
@@ -78,7 +80,7 @@ fun PromptInputOverlay(
                             },
                             enabled = promptText.isNotBlank()
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Generate")
+                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.generate))
                         }
                     }
 
@@ -90,7 +92,7 @@ fun PromptInputOverlay(
                         modifier = Modifier
                             .fillMaxWidth()
                             .focusRequester(focusRequester),
-                        placeholder = { Text("Describe your wallpaper...") },
+                        placeholder = { Text(stringResource(R.string.prompt_placeholder)) },
                         maxLines = 5,
                         keyboardOptions = KeyboardOptions(
                             imeAction = ImeAction.Go

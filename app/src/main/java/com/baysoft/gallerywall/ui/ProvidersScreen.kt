@@ -56,6 +56,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
+import androidx.compose.ui.res.stringResource
+import com.baysoft.gallerywall.R
 import com.baysoft.gallerywall.BuildConfig
 import com.baysoft.gallerywall.Settings
 import com.baysoft.gallerywall.ml.LocalMLEngine
@@ -106,8 +108,8 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
         val builtIn = listOf(
             GgufModel(
                 id = "stable_diffusion_1_5",
-                name = "Stable Diffusion v1.5 (Lite)",
-                description = "On-device Stable Diffusion v1.5 text-to-image model. Zipped package contains pre-converted sub-model components optimized for MediaPipe Tasks Vision.",
+                name = context.getString(R.string.model_sd_name),
+                description = context.getString(R.string.model_sd_description),
                 size = "1.8 GB",
                 downloadUrl = "https://github.com/bossly/gallerywall/releases/download/2.3.1/stable_diffusion_v1_5.zip",
                 sha256 = "56680bed991bc2fe5785504d3bfaa4ce495b62f0535c7f3b72eb206ef09cfcf4"
@@ -127,7 +129,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                         GgufModel(
                             id = dir.name,
                             name = dir.name,
-                            description = "Imported custom on-device Stable Diffusion model.",
+                            description = context.getString(R.string.custom_model_description),
                             size = sizeStr,
                             downloadUrl = ""
                         )
@@ -159,11 +161,11 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                     inputStream?.close()
 
                     if (!checkFreeSpace(context, sizeNeeded)) {
-                        Toast.makeText(context, "Not enough free space to import model (needs ${formatSize(sizeNeeded)})", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, context.getString(R.string.toast_free_space_import, formatSize(sizeNeeded)), Toast.LENGTH_LONG).show()
                         return@launch
                     }
 
-                    Toast.makeText(context, "Importing and unzipping model zip...", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, context.getString(R.string.toast_importing_unzipping), Toast.LENGTH_LONG).show()
 
                     withContext(Dispatchers.IO) {
                         val targetDir = getModelFile(modelId)
@@ -182,11 +184,11 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                             ?.putString(Settings.PREF_WALLPAPER_PROVIDER, "local_ai")
                             ?.apply()
                     }
-                    Toast.makeText(context, "Model imported and activated!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.toast_model_imported), Toast.LENGTH_SHORT).show()
                     refreshTrigger++
                 } catch (e: Exception) {
                     Log.e("ProvidersScreen", "Failed to import selected model zip", e)
-                    Toast.makeText(context, "Failed to import model: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, context.getString(R.string.toast_import_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -204,13 +206,13 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
         item {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Wallpaper Providers",
+                text = stringResource(R.string.wallpaper_providers_title),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = "Choose a wallpaper generation engine.",
+                text = stringResource(R.string.wallpaper_providers_summary),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
             )
@@ -256,7 +258,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                     if (isSelected) {
                         Icon(
                             Icons.Default.CheckCircle,
-                            contentDescription = "Selected",
+                            contentDescription = stringResource(R.string.selected),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -274,7 +276,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "On-Device AI Models",
+                        text = stringResource(R.string.on_device_ai_models),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
@@ -287,7 +289,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Add,
-                                contentDescription = "Import ZIP"
+                                contentDescription = stringResource(R.string.import_zip)
                             )
                         }
                     }
@@ -324,7 +326,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                             .clickable(enabled = exists) {
                                 activeModelPath = file.absolutePath
                                 prefs?.edit()?.putString(Settings.PREF_ACTIVE_MODEL_PATH, file.absolutePath)?.apply()
-                                Toast.makeText(context, "Active model set to: ${model.name}", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.toast_model_active_set, model.name), Toast.LENGTH_SHORT).show()
                             }
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
@@ -345,7 +347,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         Text(
-                                            text = "Size: $displaySize",
+                                            text = stringResource(R.string.model_size, displaySize),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.primary,
                                             fontWeight = FontWeight.SemiBold
@@ -356,7 +358,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                 color = MaterialTheme.colorScheme.primaryContainer
                                             ) {
                                                 Text(
-                                                    text = "Active & Loaded",
+                                                    text = stringResource(R.string.model_active_loaded),
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
@@ -369,7 +371,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                 color = MaterialTheme.colorScheme.secondaryContainer
                                             ) {
                                                 Text(
-                                                    text = "Downloaded",
+                                                    text = stringResource(R.string.model_downloaded),
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
@@ -385,7 +387,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                         if (isCurrentlyActive) {
                                             Icon(
                                                 Icons.Default.CheckCircle,
-                                                contentDescription = "Active Model",
+                                                contentDescription = stringResource(R.string.active_model_desc),
                                                 tint = MaterialTheme.colorScheme.primary
                                             )
                                         }
@@ -402,7 +404,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                         ) {
                                             Icon(
                                                 Icons.Default.Delete,
-                                                contentDescription = "Delete Model Folder",
+                                                contentDescription = stringResource(R.string.delete_model_desc),
                                                 tint = MaterialTheme.colorScheme.error
                                             )
                                         }
@@ -414,7 +416,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            if (currentStatus.startsWith("Error")) {
+                                            if (currentStatus.startsWith(context.getString(R.string.error_prefix, "").trim())) {
                                                 Column(horizontalAlignment = Alignment.End) {
                                                     Text(
                                                         text = currentStatus,
@@ -432,7 +434,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                             contentColor = MaterialTheme.colorScheme.onErrorContainer
                                                         )
                                                     ) {
-                                                        Text("Retry")
+                                                        Text(stringResource(R.string.retry))
                                                     }
                                                 }
                                             } else {
@@ -463,7 +465,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                                 
                                                                 val bytesNeeded = parseSizeToBytes(model.size)
                                                                 if (!checkFreeSpace(context, bytesNeeded)) {
-                                                                    Toast.makeText(context, "Not enough free space (needs ${model.size})", Toast.LENGTH_LONG).show()
+                                                                    Toast.makeText(context, context.getString(R.string.toast_free_space_download, model.size), Toast.LENGTH_LONG).show()
                                                                     return@launch
                                                                 }
 
@@ -503,7 +505,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                                     val unzipSuccess = withContext(Dispatchers.IO) {
                                                                         try {
                                                                             if (model.sha256.isNotEmpty()) {
-                                                                                downloadingStates[model.id] = "Verifying..."
+                                                                                downloadingStates[model.id] = context.getString(R.string.progress_verifying)
                                                                                 val actualSha = calculateSha256(localZip)
                                                                                 if (actualSha != model.sha256) {
                                                                                     Log.e("ProvidersScreen", "Local zip SHA256 mismatch! Expected ${model.sha256}, got $actualSha")
@@ -512,7 +514,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                                                 }
                                                                             }
 
-                                                                            downloadingStates[model.id] = "Extracting..."
+                                                                            downloadingStates[model.id] = context.getString(R.string.progress_extracting)
                                                                             baseDir.mkdirs()
                                                                             val targetDir = getModelFile(model.id)
                                                                             if (targetDir.exists()) {
@@ -529,7 +531,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                                             false
                                                                         }
                                                                     }
-                                                                        if (unzipSuccess) {
+                                                                    if (unzipSuccess) {
                                                                         downloadingStates.remove(model.id)
                                                                         val targetDir = getModelFile(model.id)
                                                                         activeModelPath = targetDir.absolutePath
@@ -538,11 +540,11 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                                             ?.putString(Settings.PREF_ACTIVE_MODEL_PATH, targetDir.absolutePath)
                                                                             ?.putString(Settings.PREF_WALLPAPER_PROVIDER, "local_ai")
                                                                             ?.apply()
-                                                                        Toast.makeText(context, "Model loaded and activated!", Toast.LENGTH_SHORT).show()
+                                                                        Toast.makeText(context, context.getString(R.string.toast_model_downloaded), Toast.LENGTH_SHORT).show()
                                                                     } else {
                                                                         Log.e("ProvidersScreen", "Failed to load/extract model from local ZIP for model ${model.id}")
-                                                                        downloadingStates[model.id] = "Error: ${errorMessage ?: "Unknown error"}"
-                                                                        Toast.makeText(context, "Failed to load model from local ZIP: $errorMessage", Toast.LENGTH_LONG).show()
+                                                                        downloadingStates[model.id] = context.getString(R.string.error_prefix, errorMessage ?: "Unknown error")
+                                                                        Toast.makeText(context, context.getString(R.string.toast_download_failed, errorMessage ?: ""), Toast.LENGTH_LONG).show()
                                                                     }
                                                                     refreshTrigger++
                                                                     return@launch
@@ -567,7 +569,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                                 val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
                                                                 val downloadId = dm.enqueue(request)
 
-                                                                downloadingStates[model.id] = "Downloading..."
+                                                                downloadingStates[model.id] = context.getString(R.string.progress_downloading)
 
                                                                 scope.launch {
                                                                     var isDone = false
@@ -603,7 +605,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                                                             val current = c.getLong(currentCol)
                                                                                             if (total > 0) {
                                                                                                 val percent = (current * 100 / total).toInt()
-                                                                                                downloadingStates[model.id] = "Downloading ($percent%)"
+                                                                                                downloadingStates[model.id] = context.getString(R.string.progress_downloading_percent, percent)
                                                                                             }
                                                                                         }
                                                                                     }
@@ -618,13 +620,13 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                                     
                                                                     if (isError) {
                                                                         Log.e("ProvidersScreen", "Download failed for model ${model.id}: $errorMessage")
-                                                                        downloadingStates[model.id] = "Error: $errorMessage"
+                                                                        downloadingStates[model.id] = context.getString(R.string.error_prefix, errorMessage ?: "")
                                                                         Toast.makeText(context, errorMessage ?: "Download failed", Toast.LENGTH_LONG).show()
                                                                     } else {
                                                                         val unzipSuccess = withContext(Dispatchers.IO) {
                                                                             try {
                                                                                 if (model.sha256.isNotEmpty()) {
-                                                                                    downloadingStates[model.id] = "Verifying..."
+                                                                                    downloadingStates[model.id] = context.getString(R.string.progress_verifying)
                                                                                     val actualSha = calculateSha256(zipFile)
                                                                                     if (actualSha != model.sha256) {
                                                                                         Log.e("ProvidersScreen", "Downloaded zip SHA256 mismatch! Expected ${model.sha256}, got $actualSha")
@@ -633,11 +635,11 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                                                     }
                                                                                 }
 
-                                                                                downloadingStates[model.id] = "Extracting..."
+                                                                                downloadingStates[model.id] = context.getString(R.string.progress_extracting)
                                                                                 val targetDir = getModelFile(model.id)
                                                                                 if (targetDir.exists()) {
                                                                                     targetDir.deleteRecursively()
-                                                                                    }
+                                                                                }
                                                                                 targetDir.mkdirs()
                                                                                 zipFile.inputStream().use { input ->
                                                                                     unzip(input, targetDir)
@@ -661,10 +663,10 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                                                 ?.putString(Settings.PREF_ACTIVE_MODEL_PATH, targetDir.absolutePath)
                                                                                 ?.putString(Settings.PREF_WALLPAPER_PROVIDER, "local_ai")
                                                                                 ?.apply()
-                                                                            Toast.makeText(context, "Model downloaded and activated!", Toast.LENGTH_SHORT).show()
+                                                                            Toast.makeText(context, context.getString(R.string.toast_model_downloaded), Toast.LENGTH_SHORT).show()
                                                                         } else {
                                                                             Log.e("ProvidersScreen", "Extraction failed for model ${model.id}: $errorMessage")
-                                                                            downloadingStates[model.id] = "Error: $errorMessage"
+                                                                            downloadingStates[model.id] = context.getString(R.string.error_prefix, errorMessage ?: "")
                                                                             Toast.makeText(context, errorMessage ?: "Extraction failed", Toast.LENGTH_LONG).show()
                                                                         }
                                                                     }
@@ -672,15 +674,15 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                                 }
                                                             } catch (e: Exception) {
                                                                 Log.e("ProvidersScreen", "Exception caught during download initiation flow for model '${model.id}'", e)
-                                                                downloadingStates[model.id] = "Error: ${e.localizedMessage}"
-                                                                Toast.makeText(context, "Failed to download model: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                                downloadingStates[model.id] = context.getString(R.string.error_prefix, e.localizedMessage ?: "")
+                                                                Toast.makeText(context, context.getString(R.string.toast_download_failed, e.message ?: ""), Toast.LENGTH_SHORT).show()
                                                             }
                                                         }
                                                     }
                                                 ) {
-                                                    Icon(Icons.Default.Add, contentDescription = "Download")
+                                                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.download_desc))
                                                     Spacer(modifier = Modifier.width(4.dp))
-                                                    Text("Download")
+                                                    Text(stringResource(R.string.download))
                                                 }
                                             }
                                         }

@@ -111,12 +111,12 @@ object GalleryWallNotifications {
         )
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setContentTitle("GalleryWall Generation")
+            .setContentTitle(context.getString(R.string.notification_title_generation))
             .setContentText(contentText)
             .setSmallIcon(R.drawable.icon_notification)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
-            .addAction(R.drawable.ic_stop, "Stop", stopPendingIntent)
+            .addAction(R.drawable.ic_stop, context.getString(R.string.stop), stopPendingIntent)
 
         if (max > 0 && progress >= 0) {
             builder.setProgress(max, progress, false)

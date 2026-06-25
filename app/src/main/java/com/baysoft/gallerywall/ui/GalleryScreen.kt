@@ -33,6 +33,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
+import com.baysoft.gallerywall.R
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -312,7 +314,7 @@ fun GalleryScreenContent(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = if (readiness == ProviderReadiness.NONE) "AI Model Required" else "Generate Your First Wallpaper",
+                    text = if (readiness == ProviderReadiness.NONE) stringResource(R.string.ai_model_required) else stringResource(R.string.generate_first_wallpaper),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
@@ -320,11 +322,11 @@ fun GalleryScreenContent(
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = if (readiness == ProviderReadiness.NONE) {
-                        "To generate wallpapers using On-Device AI, you need to download a Stable Diffusion model first."
+                        stringResource(R.string.missing_model_desc)
                     } else if (activeProviderId == "local_ai") {
-                        "Generate your first wallpaper using on-device AI model with the default prompt: '${Settings.DEFAULT_AUTOMATION_PROMPT}'"
+                        stringResource(R.string.generate_first_ai_desc, Settings.DEFAULT_AUTOMATION_PROMPT)
                     } else {
-                        "Generate your first wallpaper directly using ${activeProvider?.let { context.getString(it.titleRes) } ?: "the selected provider"}."
+                        stringResource(R.string.generate_first_other_desc, activeProvider?.let { context.getString(it.titleRes) } ?: stringResource(R.string.pref_wallpaper_source_title))
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
@@ -333,15 +335,15 @@ fun GalleryScreenContent(
                 Spacer(modifier = Modifier.height(24.dp))
                 if (readiness == ProviderReadiness.NONE) {
                     Button(onClick = { onNavigateToProviders() }) {
-                        Icon(Icons.Default.List, contentDescription = "Go to Providers")
+                        Icon(Icons.Default.List, contentDescription = stringResource(R.string.tab_providers))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Download & Select Model")
+                        Text(stringResource(R.string.download_select_model))
                     }
                 } else {
                     Button(onClick = { onGenerate() }) {
-                        Icon(Icons.Default.Add, contentDescription = "Generate")
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.generate))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Generate")
+                        Text(stringResource(R.string.generate))
                     }
                 }
             }
@@ -349,13 +351,13 @@ fun GalleryScreenContent(
             Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Wallpapers",
+                    text = stringResource(R.string.tab_wallpapers),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Long press any wallpaper to apply it directly.",
+                    text = stringResource(R.string.wallpapers_summary),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                 )
@@ -393,14 +395,14 @@ fun GalleryScreenContent(
                                                 )
                                                 Spacer(modifier = Modifier.height(16.dp))
                                                 Text(
-                                                    text = "Loading Model...",
+                                                    text = stringResource(R.string.progress_loading_model),
                                                     style = MaterialTheme.typography.titleSmall,
                                                     fontWeight = FontWeight.Bold,
                                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                                                     textAlign = TextAlign.Center
                                                 )
                                                 Text(
-                                                    text = "Loading weights to internal storage",
+                                                    text = stringResource(R.string.progress_loading_weights),
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                                                     textAlign = TextAlign.Center
@@ -414,14 +416,14 @@ fun GalleryScreenContent(
                                                 )
                                                 Spacer(modifier = Modifier.height(16.dp))
                                                 Text(
-                                                    text = "Generating...",
+                                                    text = stringResource(R.string.progress_generating),
                                                     style = MaterialTheme.typography.titleSmall,
                                                     fontWeight = FontWeight.Bold,
                                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                                                     textAlign = TextAlign.Center
                                                 )
                                                 Text(
-                                                    text = "Step: ${state.currentStep}/${state.totalSteps}",
+                                                    text = stringResource(R.string.progress_step, state.currentStep, state.totalSteps),
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                                                     textAlign = TextAlign.Center
@@ -434,7 +436,7 @@ fun GalleryScreenContent(
                                                 )
                                                 Spacer(modifier = Modifier.height(16.dp))
                                                 Text(
-                                                    text = "Initializing...",
+                                                    text = stringResource(R.string.progress_initializing),
                                                     style = MaterialTheme.typography.titleSmall,
                                                     fontWeight = FontWeight.Bold,
                                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -451,14 +453,14 @@ fun GalleryScreenContent(
                                             )
                                             Spacer(modifier = Modifier.height(16.dp))
                                             Text(
-                                                text = "Generating...",
+                                                text = stringResource(R.string.progress_generating),
                                                 style = MaterialTheme.typography.titleSmall,
                                                 fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                                                 textAlign = TextAlign.Center
                                             )
                                             Text(
-                                                text = currentProviderState.message ?: "Creating seamless tile",
+                                                text = currentProviderState.message ?: stringResource(R.string.progress_seamless_tile),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                                                 textAlign = TextAlign.Center
@@ -470,14 +472,14 @@ fun GalleryScreenContent(
                                             )
                                             Spacer(modifier = Modifier.height(16.dp))
                                             Text(
-                                                text = "Generating...",
+                                                text = stringResource(R.string.progress_generating),
                                                 style = MaterialTheme.typography.titleSmall,
                                                 fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                                                 textAlign = TextAlign.Center
                                             )
                                             Text(
-                                                text = "Creating seamless tile",
+                                                text = stringResource(R.string.progress_seamless_tile),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                                                 textAlign = TextAlign.Center
@@ -498,10 +500,10 @@ fun GalleryScreenContent(
                                     ) {
                                         Icon(
                                             painter = painterResource(id = R.drawable.ic_stop),
-                                            contentDescription = "Stop"
+                                            contentDescription = stringResource(R.string.stop)
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Stop")
+                                        Text(stringResource(R.string.stop))
                                     }
                                 }
                             }
@@ -541,7 +543,7 @@ fun GalleryScreenContent(
                                     Box(modifier = Modifier.fillMaxSize()) {
                                         Image(
                                             bitmap = bitmap.asImageBitmap(),
-                                            contentDescription = "Wallpaper preview",
+                                            contentDescription = stringResource(R.string.provider_preview_description),
                                             contentScale = ContentScale.Crop,
                                             modifier = Modifier.fillMaxSize()
                                         )
@@ -604,7 +606,7 @@ fun GalleryScreenContent(
                         Box(modifier = Modifier.fillMaxSize()) {
                             Image(
                                 bitmap = bitmap.asImageBitmap(),
-                                contentDescription = "Full wallpaper preview",
+                                contentDescription = stringResource(R.string.provider_preview_description),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()
                             )
@@ -612,10 +614,10 @@ fun GalleryScreenContent(
                             // Prompt overlay at the top
                             val previewText = entity.prompt.ifEmpty {
                                 when {
-                                    entity.providerId == "local_ai" || entity.filePath.contains("local_ai") -> "Local AI"
-                                    entity.providerId == "procedural" || entity.filePath.contains("tile_noise") || entity.filePath.contains("procedural") -> "Procedural"
-                                    entity.providerId == "random_color" || entity.filePath.contains("random_color") -> "Color"
-                                    else -> "Pattern"
+                                    entity.providerId == "local_ai" || entity.filePath.contains("local_ai") -> stringResource(R.string.provider_ai_title)
+                                    entity.providerId == "procedural" || entity.filePath.contains("tile_noise") || entity.filePath.contains("procedural") -> stringResource(R.string.provider_procedural_title)
+                                    entity.providerId == "random_color" || entity.filePath.contains("random_color") -> stringResource(R.string.provider_color_title)
+                                    else -> stringResource(R.string.wallpaper)
                                 }
                             }
                             Surface(
@@ -654,9 +656,9 @@ fun GalleryScreenContent(
                                         onDeleteWallpaper(entity)
                                     }
                                 ) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Delete")
+                                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_wallpaper))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Delete")
+                                    Text(stringResource(R.string.delete_wallpaper))
                                 }
 
                                 Button(
@@ -668,9 +670,9 @@ fun GalleryScreenContent(
                                         onApplyWallpaper(bitmap)
                                     }
                                 ) {
-                                    Icon(Icons.Default.Done, contentDescription = "Set Wallpaper")
+                                    Icon(Icons.Default.Done, contentDescription = stringResource(R.string.set_wallpaper))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Set")
+                                    Text(stringResource(R.string.set_wallpaper))
                                 }
                             }
                         }
@@ -682,11 +684,11 @@ fun GalleryScreenContent(
         showErrorDialog?.let { errorMessage ->
             AlertDialog(
                 onDismissRequest = onDismissErrorDialog,
-                title = { Text("Generation Failed") },
+                title = { Text(stringResource(R.string.dialog_failed_title)) },
                 text = { Text(errorMessage) },
                 confirmButton = {
                     TextButton(onClick = onDismissErrorDialog) {
-                        Text("OK")
+                        Text(stringResource(R.string.ok))
                     }
                 }
             )
@@ -695,19 +697,19 @@ fun GalleryScreenContent(
         if (showGenerationWarning) {
             AlertDialog(
                 onDismissRequest = onDismissWarningDialog,
-                title = { Text("Start Generation?") },
-                text = { Text("Generating a new wallpaper using on-device AI may take 2-10 minutes depending on your device's performance. The system may slow down during this process.") },
+                title = { Text(stringResource(R.string.dialog_start_title)) },
+                text = { Text(stringResource(R.string.dialog_start_desc)) },
                 confirmButton = {
                     Button(onClick = {
                         onDismissWarningDialog()
                         onProceedGeneration()
                     }) {
-                        Text("Proceed")
+                        Text(stringResource(R.string.proceed))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = onDismissWarningDialog) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.cancel))
                     }
                 }
             )
