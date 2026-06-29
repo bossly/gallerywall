@@ -54,3 +54,57 @@
 # Flogger Rules
 -keep class com.google.common.flogger.** { *; }
 -dontwarn com.google.common.flogger.**
+
+# ============================================================
+# Room Database (annotation-processor + reflection-based)
+# ============================================================
+-keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Database class * { *; }
+-keep @androidx.room.Dao class * { *; }
+-keep @androidx.room.Entity class * { *; }
+-keepclassmembers class * {
+    @androidx.room.* <methods>;
+    @androidx.room.* <fields>;
+}
+
+# ============================================================
+# Kotlin Enums — keep synthetic values()/valueOf()
+# ============================================================
+-keepclassmembers,allowoptimization enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
+# ============================================================
+# App: Keep all provider implementations and interfaces
+# (accessed via WallpaperProviderRegistry using interface dispatch)
+# ============================================================
+-keep class com.baysoft.gallerywall.provider.** { *; }
+
+# ============================================================
+# App: Keep sealed class hierarchy for ImageGenerationService.GenerationState
+# (accessed via StateFlow / when-expressions which rely on class identity)
+# ============================================================
+-keep class com.baysoft.gallerywall.ImageGenerationService$GenerationState { *; }
+-keep class com.baysoft.gallerywall.ImageGenerationService$GenerationState$* { *; }
+
+# ============================================================
+# App: Keep data layer classes (Room entity fields, DAO methods)
+# ============================================================
+-keep class com.baysoft.gallerywall.data.** { *; }
+
+# ============================================================
+# App: Keep Settings, GalleryWall, and other core classes
+# that are accessed from WorkManager/BroadcastReceiver context
+# ============================================================
+-keep class com.baysoft.gallerywall.Settings { *; }
+-keep class com.baysoft.gallerywall.GalleryWall { *; }
+-keep class com.baysoft.gallerywall.GalleryWallReceiver { *; }
+-keep class com.baysoft.gallerywall.GalleryApplication { *; }
+-keep class com.baysoft.gallerywall.PromptFilter { *; }
+
+# ============================================================
+# Preserve line numbers for crash reports
+# ============================================================
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
