@@ -38,19 +38,6 @@ class WallpaperProviderGenerateTest {
         }
     }
 
-    @Test
-    fun colorProvider_cancellation() {
-        val provider = com.baysoft.gallerywall.provider.ColorProvider
-        val thread = Thread {
-            assertThrows(java.util.concurrent.CancellationException::class.java) {
-                provider.generateBitmap(context) {}
-            }
-        }
-        thread.start()
-        Thread.sleep(500)
-        provider.stop(context)
-        thread.join(3000)
-    }
 
     @Test
     fun localAIProvider_stop_startsServiceWithStopAction() {

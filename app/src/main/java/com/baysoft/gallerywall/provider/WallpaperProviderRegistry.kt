@@ -2,7 +2,6 @@ package com.baysoft.gallerywall.provider
 
 import android.content.Context
 import androidx.preference.PreferenceManager
-import com.baysoft.gallerywall.BuildConfig
 import com.baysoft.gallerywall.Settings
 
 /**
@@ -47,5 +46,5 @@ object WallpaperProviderRegistry {
     }
 
     val defaultProvider: WallpaperProvider
-        get() = if (BuildConfig.DEBUG) ColorProvider else LocalAIProvider
+        get() = LocalAIProvider
 }

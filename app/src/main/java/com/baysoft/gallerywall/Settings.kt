@@ -40,7 +40,7 @@ class Settings(private val preferences: SharedPreferences) {
     /** Selected wallpaper generator ([com.baysoft.gallerywall.provider.WallpaperProvider.id]). */
     val activeProviderId: String
         get() {
-            val defaultId = if (BuildConfig.DEBUG) "random_color" else "local_ai"
+            val defaultId = "local_ai"
             return preferences.getString(PREF_WALLPAPER_PROVIDER, defaultId) ?: defaultId
         }
 

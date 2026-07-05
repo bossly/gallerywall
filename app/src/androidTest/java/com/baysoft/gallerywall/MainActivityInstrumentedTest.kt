@@ -10,7 +10,6 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
 import com.baysoft.gallerywall.data.WallpaperDatabase
 import com.baysoft.gallerywall.data.WallpaperEntity
-import com.baysoft.gallerywall.provider.ColorProvider
 import com.baysoft.gallerywall.provider.WallpaperProviderRegistry
 import kotlinx.coroutines.runBlocking
 import org.junit.*
@@ -40,7 +39,6 @@ class MainActivityInstrumentedTest {
 
     @Before
     fun before() {
-        WallpaperProviderRegistry.unregister(ColorProvider)
         Screengrab.setDefaultScreenshotStrategy(UiAutomatorScreenshotStrategy())
         val extras: Bundle = InstrumentationRegistry.getArguments()
         // https://docs.fastlane.tools/getting-started/android/screenshots/#advanced-screengrab

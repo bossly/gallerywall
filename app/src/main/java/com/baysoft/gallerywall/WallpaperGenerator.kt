@@ -115,17 +115,22 @@ object WallpaperGenerator {
                 0f, 0f, 0f, 1f, 0f
             )))
             "blur" -> {
-                val outBmp = Bitmap.createBitmap(bitmap.width, bitmap.height, bitmap.config ?: Bitmap.Config.ARGB_8888)
-                val canvas = Canvas(outBmp)
-                val paint = Paint()
-                try {
-                    val method = paint.javaClass.getMethod("setRenderEffect", RenderEffect::class.java)
-                    method.invoke(paint, RenderEffect.createBlurEffect(15f, 15f, Shader.TileMode.CLAMP))
-                } catch (e: Exception) {
-                    // Fallback or ignore if reflection fails
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    val outBmp = Bitmap.createBitmap(bitmap.width, bitmap.height, bitmap.config ?: Bitmap.Config.ARGB_8888)
+                    val canvas = Canvas(outBmp)
+                    val paint = Paint()
+                    try {
+                        val method = paint.javaClass.getMethod("setRenderEffect", RenderEffect::class.java)
+                        method.invoke(paint, RenderEffect.createBlurEffect(15f, 15f, Shader.TileMode.CLAMP))
+                    } catch (e: Exception) {
+                        // Ignore if reflection fails
+                    }
+                    canvas.drawBitmap(bitmap, 0f, 0f, paint)
+                    bitmap.recycle()
+                    outBmp
+                } else {
+                    bitmap
                 }
-                canvas.drawBitmap(bitmap, 0f, 0f, paint)
-                outBmp
             }
             else -> bitmap
         }
@@ -138,6 +143,7 @@ object WallpaperGenerator {
             colorFilter = ColorMatrixColorFilter(matrix)
         }
         canvas.drawBitmap(bitmap, 0f, 0f, paint)
+        bitmap.recycle()
         return outBmp
     }
 }

@@ -1,29 +1,54 @@
 package com.baysoft.gallerywall.ui
 
+import android.content.Context
+import android.graphics.Bitmap
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import android.graphics.Bitmap
-import android.content.Context
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.List
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.core.content.edit
-import androidx.core.graphics.createBitmap
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,33 +56,36 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.res.stringResource
-import com.baysoft.gallerywall.R
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.content.edit
+import androidx.core.graphics.createBitmap
 import androidx.preference.PreferenceManager
 import com.baysoft.gallerywall.GalleryWall
-import com.baysoft.gallerywall.PromptFilter
-import com.baysoft.gallerywall.Settings
 import com.baysoft.gallerywall.ImageGenerationService
+import com.baysoft.gallerywall.PromptFilter
+import com.baysoft.gallerywall.R
+import com.baysoft.gallerywall.Settings
 import com.baysoft.gallerywall.data.WallpaperDatabase
 import com.baysoft.gallerywall.data.WallpaperEntity
 import com.baysoft.gallerywall.data.WallpaperRepository
+import com.baysoft.gallerywall.provider.ProviderReadiness
 import com.baysoft.gallerywall.provider.ProviderState
+import com.baysoft.gallerywall.provider.WallpaperProviderRegistry
+import com.baysoft.gallerywall.ui.theme.GalleryWallTheme
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.compose.ui.tooling.preview.Preview
-import com.baysoft.gallerywall.provider.ProviderReadiness
-import com.baysoft.gallerywall.provider.WallpaperProviderRegistry
-import com.baysoft.gallerywall.ui.theme.GalleryWallTheme
+import coil.compose.AsyncImage
 
 private const val TAG = "GalleryScreen"
 
@@ -249,10 +277,13 @@ fun GalleryScreen(
                 Toast.makeText(context, "Deleted wallpaper", Toast.LENGTH_SHORT).show()
             }
         },
-        onApplyWallpaper = { bitmap ->
+        onApplyWallpaper = { path ->
             scope.launch {
                 withContext(Dispatchers.IO) {
-                    GalleryWall.updateWallpaper(context, bitmap)
+                    val bmp = android.graphics.BitmapFactory.decodeFile(path)
+                    if (bmp != null) {
+                        GalleryWall.updateWallpaper(context, bmp)
+                    }
                 }
                 Toast.makeText(context, "Wallpaper Applied!", Toast.LENGTH_SHORT).show()
                 selectedWallpaper = null
@@ -289,7 +320,7 @@ fun GalleryScreenContent(
     onNavigateToProviders: () -> Unit,
     onSelectWallpaper: (WallpaperEntity?) -> Unit,
     onDeleteWallpaper: (WallpaperEntity) -> Unit,
-    onApplyWallpaper: (Bitmap) -> Unit,
+    onApplyWallpaper: (String) -> Unit,
     onDismissErrorDialog: () -> Unit
 ) {
     val focusManager = LocalFocusManager.current
@@ -513,39 +544,40 @@ fun GalleryScreenContent(
                         val file = File(entity.filePath)
                         val isPreview = LocalInspectionMode.current
                         if (file.exists() || isPreview) {
-                            val bitmap = remember(entity.filePath) {
-                                if (isPreview) {
-                                    createBitmap(200, 300).apply {
-                                        eraseColor(android.graphics.Color.DKGRAY)
-                                    }
-                                } else {
-                                    decodeWallpaperBitmap(entity.filePath)
-                                }
-                            }
-                            if (bitmap != null) {
-                                Card(
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                                    ),
-                                    shape = RoundedCornerShape(16.dp),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .aspectRatio(0.6f)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .combinedClickable(
-                                            onClick = { onSelectWallpaper(entity) },
-                                            onLongClick = {
-                                                onApplyWallpaper(bitmap)
-                                            }
-                                        )
-                                ) {
-                                    Box(modifier = Modifier.fillMaxSize()) {
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                ),
+                                shape = RoundedCornerShape(16.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(0.6f)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .combinedClickable(
+                                        onClick = { onSelectWallpaper(entity) },
+                                        onLongClick = {
+                                            onApplyWallpaper(entity.filePath)
+                                        }
+                                    )
+                            ) {
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    if (isPreview) {
                                         Image(
-                                            bitmap = bitmap.asImageBitmap(),
+                                            bitmap = createBitmap(200, 300).apply {
+                                                eraseColor(android.graphics.Color.DKGRAY)
+                                            }.asImageBitmap(),
                                             contentDescription = stringResource(R.string.provider_preview_description),
                                             contentScale = ContentScale.Crop,
                                             modifier = Modifier.fillMaxSize()
                                         )
+                                    } else {
+                                        AsyncImage(
+                                            model = file,
+                                            contentDescription = stringResource(R.string.provider_preview_description),
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
 
                                         // Date of generation label
                                         val dateText = remember(entity.dateAdded) {
@@ -580,99 +612,101 @@ fun GalleryScreenContent(
 
         // Preview Detail Modal Dialog (Rendered as fullscreen Dialog window covering app bars)
         selectedWallpaper?.let { entity ->
+            val file = File(entity.filePath)
             val isPreview = LocalInspectionMode.current
-            val bitmap = remember(entity.filePath) {
-                if (isPreview) {
-                    createBitmap(200, 300).apply {
-                        eraseColor(android.graphics.Color.DKGRAY)
-                    }
-                } else {
-                    decodeWallpaperBitmap(entity.filePath)
-                }
-            }
-            if (bitmap != null) {
-                Dialog(
-                    onDismissRequest = { onSelectWallpaper(null) },
-                    properties = DialogProperties(
-                        usePlatformDefaultWidth = false,
-                        decorFitsSystemWindows = false
-                    )
+            
+            Dialog(
+                onDismissRequest = { onSelectWallpaper(null) },
+                properties = DialogProperties(
+                    usePlatformDefaultWidth = false,
+                    decorFitsSystemWindows = false
+                )
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
                 ) {
-                    Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.background
-                    ) {
-                        Box(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        if (isPreview) {
                             Image(
-                                bitmap = bitmap.asImageBitmap(),
+                                bitmap = createBitmap(200, 300).apply {
+                                    eraseColor(android.graphics.Color.DKGRAY)
+                                }.asImageBitmap(),
                                 contentDescription = stringResource(R.string.provider_preview_description),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()
                             )
+                        } else {
+                            AsyncImage(
+                                model = file,
+                                contentDescription = stringResource(R.string.provider_preview_description),
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
 
-                            // Prompt overlay at the top
-                            val previewText = entity.prompt.ifEmpty {
-                                when {
-                                    entity.providerId == "local_ai" || entity.filePath.contains("local_ai") -> stringResource(R.string.provider_ai_title)
-                                    entity.providerId == "procedural" || entity.filePath.contains("tile_noise") || entity.filePath.contains("procedural") -> stringResource(R.string.provider_procedural_title)
-                                    entity.providerId == "random_color" || entity.filePath.contains("random_color") -> stringResource(R.string.provider_color_title)
-                                    else -> stringResource(R.string.wallpaper)
-                                }
+                        // Prompt overlay at the top
+                        val previewText = entity.prompt.ifEmpty {
+                            when {
+                                entity.providerId == "local_ai" || entity.filePath.contains("local_ai") -> stringResource(R.string.provider_ai_title)
+                                entity.providerId == "procedural" || entity.filePath.contains("tile_noise") || entity.filePath.contains("procedural") -> stringResource(R.string.provider_procedural_title)
+                                entity.providerId == "random_color" || entity.filePath.contains("random_color") -> stringResource(R.string.provider_color_title)
+                                else -> stringResource(R.string.wallpaper)
                             }
-                            Surface(
-                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier
-                                    .align(Alignment.TopCenter)
-                                    .padding(top = 48.dp, start = 24.dp, end = 24.dp)
-                                    .fillMaxWidth()
+                        }
+                        Surface(
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = 48.dp, start = 24.dp, end = 24.dp)
+                                .fillMaxWidth()
+                        ) {
+                            Text(
+                                text = previewText,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
+
+                        // Controls bar at the bottom
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 80.dp, start = 16.dp, end = 16.dp)
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Button(
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                ),
+                                onClick = {
+                                    onDeleteWallpaper(entity)
+                                }
                             ) {
-                                Text(
-                                    text = previewText,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.padding(16.dp)
-                                )
+                                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_wallpaper))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(stringResource(R.string.delete_wallpaper))
                             }
 
-                            // Controls bar at the bottom
-                            Row(
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .padding(bottom = 80.dp, start = 16.dp, end = 16.dp)
-                                    .fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly,
-                                verticalAlignment = Alignment.CenterVertically
+                            Button(
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                ),
+                                onClick = {
+                                    onApplyWallpaper(entity.filePath)
+                                }
                             ) {
-                                Button(
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                                        contentColor = MaterialTheme.colorScheme.onErrorContainer
-                                    ),
-                                    onClick = {
-                                        onDeleteWallpaper(entity)
-                                    }
-                                ) {
-                                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_wallpaper))
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(stringResource(R.string.delete_wallpaper))
-                                }
-
-                                Button(
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                    ),
-                                    onClick = {
-                                        onApplyWallpaper(bitmap)
-                                    }
-                                ) {
-                                    Icon(Icons.Default.Done, contentDescription = stringResource(R.string.set_wallpaper))
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(stringResource(R.string.set_wallpaper))
-                                }
+                                Icon(Icons.Default.Done, contentDescription = stringResource(R.string.set_wallpaper))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(stringResource(R.string.set_wallpaper))
                             }
                         }
                     }
@@ -723,20 +757,6 @@ fun GalleryScreenContent(
             )
         }
     }
-}
-
-private fun decodeWallpaperBitmap(path: String): Bitmap? {
-    val file = File(path)
-    if (!file.exists()) return null
-    return try {
-        val source = android.graphics.ImageDecoder.createSource(file)
-        android.graphics.ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
-            decoder.allocator = android.graphics.ImageDecoder.ALLOCATOR_SOFTWARE
-        }
-    } catch (_: Exception) {
-        android.graphics.BitmapFactory.decodeFile(path)
-    }
-}
 
 @Preview(showBackground = true)
 @Composable

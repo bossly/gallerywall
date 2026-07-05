@@ -23,6 +23,7 @@ class LocalMLEngine private constructor() {
     /**
      * Loads the MediaPipe Image Generator using the given local directory path.
      */
+    @Synchronized
     fun loadModel(context: Context, modelPath: String): Boolean {
         val baseDir = File(modelPath)
         if (!baseDir.exists()) {
@@ -187,27 +188,19 @@ class LocalMLEngine private constructor() {
             if (supportTransparency) {
                 generatedTile = rawBitmap
             } else {
-                // Force alpha channel to opaque (255) if transparency is disabled
-                val width = rawBitmap.width
-                val height = rawBitmap.height
-                val pixelCount = height * width
-                val pixels = IntArray(pixelCount)
-                rawBitmap.getPixels(pixels, 0, width, 0, 0, width, height)
-
-                for (i in 0 until pixelCount) {
-                    val color = pixels[i]
-                    val r = Color.red(color)
-                    val g = Color.green(color)
-                    val b = Color.blue(color)
-                    pixels[i] = (255 shl 24) or (r shl 16) or (g shl 8) or b
-                }
-
-                generatedTile = Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
+                // Force alpha channel to opaque using Canvas instead of massive IntArray
+                generatedTile = Bitmap.createBitmap(rawBitmap.width, rawBitmap.height, Bitmap.Config.ARGB_8888)
+                val canvas = android.graphics.Canvas(generatedTile!!)
+                canvas.drawColor(Color.BLACK)
+                canvas.drawBitmap(rawBitmap, 0f, 0f, null)
             }
 
         } catch (e: Exception) {
             if (e is java.util.concurrent.CancellationException) {
                 throw e
+            }
+            if (e.message?.contains("task graph hasn't been successfully started") == true) {
+                throw java.util.concurrent.CancellationException("MediaPipe generation cancelled")
             }
             Log.e(TAG, "MediaPipe Image Generator generation failed", e)
             throw e
@@ -266,22 +259,11 @@ class LocalMLEngine private constructor() {
             if (supportTransparency) {
                 generatedTile = rawBitmap
             } else {
-                // Force alpha channel to opaque (255) if transparency is disabled
-                val width = rawBitmap.width
-                val height = rawBitmap.height
-                val pixelCount = height * width
-                val pixels = IntArray(pixelCount)
-                rawBitmap.getPixels(pixels, 0, width, 0, 0, width, height)
-
-                for (i in 0 until pixelCount) {
-                    val color = pixels[i]
-                    val r = Color.red(color)
-                    val g = Color.green(color)
-                    val b = Color.blue(color)
-                    pixels[i] = (255 shl 24) or (r shl 16) or (g shl 8) or b
-                }
-
-                generatedTile = Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
+                // Force alpha channel to opaque using Canvas instead of massive IntArray
+                generatedTile = Bitmap.createBitmap(rawBitmap.width, rawBitmap.height, Bitmap.Config.ARGB_8888)
+                val canvas = android.graphics.Canvas(generatedTile!!)
+                canvas.drawColor(Color.BLACK)
+                canvas.drawBitmap(rawBitmap, 0f, 0f, null)
             }
 
         } catch (e: Exception) {

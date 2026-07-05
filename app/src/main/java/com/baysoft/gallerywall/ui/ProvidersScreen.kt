@@ -58,7 +58,6 @@ import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
 import androidx.compose.ui.res.stringResource
 import com.baysoft.gallerywall.R
-import com.baysoft.gallerywall.BuildConfig
 import com.baysoft.gallerywall.Settings
 import com.baysoft.gallerywall.ml.LocalMLEngine
 import com.baysoft.gallerywall.ui.theme.GalleryWallTheme
@@ -76,6 +75,8 @@ data class GgufModel(
     val sha256: String = ""
 )
 
+data class DownloadState(val status: String, val downloadId: Long? = null)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProvidersScreen(modifier: Modifier = Modifier) {
@@ -88,7 +89,11 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
     var selectedProviderId by remember {
         mutableStateOf(prefs?.getString(Settings.PREF_WALLPAPER_PROVIDER, "local_ai") ?: "local_ai")
     }
-    val downloadingStates = remember { mutableStateMapOf<String, String>() }
+    val downloadingStates = remember { mutableStateMapOf<String, DownloadState>() }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { }
 
     val baseDir = remember { 
         if (isPreview) {
@@ -196,6 +201,139 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
 
     val allProviders = remember { com.baysoft.gallerywall.provider.WallpaperProviderRegistry.all() }
 
+    val monitorDownload = remember(context, scope, downloadingStates, prefs) {
+        { model: GgufModel, downloadId: Long, zipFile: File ->
+            downloadingStates[model.id] = DownloadState(context.getString(R.string.progress_downloading), downloadId)
+            scope.launch {
+                var isDone = false
+                var isError = false
+                var errorMessage: String? = null
+                val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                
+                while (!isDone && !isError) {
+                    kotlinx.coroutines.delay(1000)
+                    val q = DownloadManager.Query().setFilterById(downloadId)
+                    val c = dm.query(q)
+                    if (c != null && c.moveToFirst()) {
+                        val statusCol = c.getColumnIndex(DownloadManager.COLUMN_STATUS)
+                        if (statusCol != -1) {
+                            val status = c.getInt(statusCol)
+                            when (status) {
+                                DownloadManager.STATUS_SUCCESSFUL -> {
+                                    isDone = true
+                                }
+                                DownloadManager.STATUS_FAILED -> {
+                                    isError = true
+                                    val reasonCol = c.getColumnIndex(DownloadManager.COLUMN_REASON)
+                                    val reason = if (reasonCol != -1) c.getInt(reasonCol) else -1
+                                    errorMessage = "Download failed: status code $reason"
+                                }
+                                DownloadManager.STATUS_PAUSED -> {}
+                                DownloadManager.STATUS_RUNNING -> {
+                                    val totalCol = c.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
+                                    val currentCol = c.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
+                                    if (totalCol != -1 && currentCol != -1) {
+                                        val total = c.getLong(totalCol)
+                                        val current = c.getLong(currentCol)
+                                        if (total > 0) {
+                                            val percent = (current * 100 / total).toInt()
+                                            downloadingStates[model.id] = DownloadState(context.getString(R.string.progress_downloading_percent, percent), downloadId)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        c.close()
+                    } else {
+                        isError = true
+                        errorMessage = "Download cancelled or failed"
+                    }
+                }
+                
+                if (isError) {
+                    Log.e("ProvidersScreen", "Download failed for model ${model.id}: $errorMessage")
+                    downloadingStates[model.id] = DownloadState(context.getString(R.string.error_prefix, errorMessage ?: ""))
+                    Toast.makeText(context, errorMessage ?: "Download failed", Toast.LENGTH_LONG).show()
+                } else {
+                    val unzipSuccess = withContext(Dispatchers.IO) {
+                        try {
+                            if (model.sha256.isNotEmpty()) {
+                                downloadingStates[model.id] = DownloadState(context.getString(R.string.progress_verifying), downloadId)
+                                val actualSha = calculateSha256(zipFile)
+                                if (actualSha != model.sha256) {
+                                    Log.e("ProvidersScreen", "Downloaded zip SHA256 mismatch! Expected ${model.sha256}, got $actualSha")
+                                    errorMessage = "Checksum mismatch! Corrupted download."
+                                    return@withContext false
+                                }
+                            }
+
+                            downloadingStates[model.id] = DownloadState(context.getString(R.string.progress_extracting), downloadId)
+                            val targetDir = getModelFile(model.id)
+                            if (targetDir.exists()) {
+                                targetDir.deleteRecursively()
+                            }
+                            targetDir.mkdirs()
+                            zipFile.inputStream().use { input ->
+                                unzip(input, targetDir)
+                            }
+                            true
+                        } catch (e: Exception) {
+                            Log.e("ProvidersScreen", "Error unzipping model for model ${model.id}", e)
+                            errorMessage = "Extraction failed: ${e.message}"
+                            false
+                        } finally {
+                            zipFile.delete()
+                        }
+                    }
+                    
+                    if (unzipSuccess) {
+                        downloadingStates.remove(model.id)
+                        val targetDir = getModelFile(model.id)
+                        activeModelPath = targetDir.absolutePath
+                        selectedProviderId = "local_ai"
+                        prefs?.edit()
+                            ?.putString(Settings.PREF_ACTIVE_MODEL_PATH, targetDir.absolutePath)
+                            ?.putString(Settings.PREF_WALLPAPER_PROVIDER, "local_ai")
+                            ?.apply()
+                        Toast.makeText(context, context.getString(R.string.toast_model_downloaded), Toast.LENGTH_SHORT).show()
+                    } else {
+                        Log.e("ProvidersScreen", "Extraction failed for model ${model.id}: $errorMessage")
+                        downloadingStates[model.id] = DownloadState(context.getString(R.string.error_prefix, errorMessage ?: ""))
+                        Toast.makeText(context, errorMessage ?: "Extraction failed", Toast.LENGTH_LONG).show()
+                    }
+                }
+                refreshTrigger++
+            }
+        }
+    }
+
+    LaunchedEffect(modelsList) {
+        if (isPreview) return@LaunchedEffect
+        val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        val q = DownloadManager.Query().setFilterByStatus(
+            DownloadManager.STATUS_RUNNING or DownloadManager.STATUS_PAUSED or DownloadManager.STATUS_PENDING
+        )
+        val c = dm.query(q)
+        if (c != null) {
+            while (c.moveToNext()) {
+                val titleCol = c.getColumnIndex(DownloadManager.COLUMN_TITLE)
+                if (titleCol != -1) {
+                    val title = c.getString(titleCol)
+                    val model = modelsList.find { it.name == title }
+                    if (model != null && !downloadingStates.containsKey(model.id)) {
+                        val idCol = c.getColumnIndex(DownloadManager.COLUMN_ID)
+                        if (idCol != -1) {
+                            val downloadId = c.getLong(idCol)
+                            val zipFile = File(baseDir, "${model.id}.zip")
+                            monitorDownload(model, downloadId, zipFile)
+                        }
+                    }
+                }
+            }
+            c.close()
+        }
+    }
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -281,18 +419,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
-                    if (BuildConfig.DEBUG) {
-                        IconButton(
-                            onClick = {
-                                filePickerLauncher.launch("*/*")
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = stringResource(R.string.import_zip)
-                            )
-                        }
-                    }
+
                 }
                 Spacer(modifier = Modifier.height(8.dp))
             }
@@ -410,48 +537,8 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                         }
                                     }
                                 } else {
-                                    val currentStatus = downloadingStates[model.id]
-                                    if (currentStatus != null) {
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            if (currentStatus.startsWith(context.getString(R.string.error_prefix, "").trim())) {
-                                                Column(horizontalAlignment = Alignment.End) {
-                                                    Text(
-                                                        text = currentStatus,
-                                                        color = MaterialTheme.colorScheme.error,
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        fontWeight = FontWeight.Bold
-                                                    )
-                                                    Spacer(modifier = Modifier.height(4.dp))
-                                                    Button(
-                                                        onClick = {
-                                                            downloadingStates.remove(model.id)
-                                                        },
-                                                        colors = ButtonDefaults.buttonColors(
-                                                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                                                            contentColor = MaterialTheme.colorScheme.onErrorContainer
-                                                        )
-                                                    ) {
-                                                        Text(stringResource(R.string.retry))
-                                                    }
-                                                }
-                                            } else {
-                                                CircularProgressIndicator(
-                                                    modifier = Modifier.size(20.dp),
-                                                    strokeWidth = 2.dp,
-                                                    color = MaterialTheme.colorScheme.primary
-                                                )
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Text(
-                                                    text = currentStatus,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    fontWeight = FontWeight.SemiBold
-                                                )
-                                            }
-                                        }
-                                    } else {
+                                    val currentState = downloadingStates[model.id]
+                                    if (currentState == null) {
                                         Row(
                                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                                             verticalAlignment = Alignment.CenterVertically
@@ -459,6 +546,11 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                             if (model.downloadUrl.isNotEmpty()) {
                                                 Button(
                                                     onClick = {
+                                                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                                            if (context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                                                permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                                            }
+                                                        }
                                                         scope.launch {
                                                             try {
                                                                 Log.d("ProvidersScreen", "Download button clicked for model: ${model.name} (${model.id})")
@@ -505,7 +597,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                                     val unzipSuccess = withContext(Dispatchers.IO) {
                                                                         try {
                                                                             if (model.sha256.isNotEmpty()) {
-                                                                                downloadingStates[model.id] = context.getString(R.string.progress_verifying)
+                                                                                downloadingStates[model.id] = DownloadState(context.getString(R.string.progress_verifying))
                                                                                 val actualSha = calculateSha256(localZip)
                                                                                 if (actualSha != model.sha256) {
                                                                                     Log.e("ProvidersScreen", "Local zip SHA256 mismatch! Expected ${model.sha256}, got $actualSha")
@@ -514,7 +606,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                                                 }
                                                                             }
 
-                                                                            downloadingStates[model.id] = context.getString(R.string.progress_extracting)
+                                                                            downloadingStates[model.id] = DownloadState(context.getString(R.string.progress_extracting))
                                                                             baseDir.mkdirs()
                                                                             val targetDir = getModelFile(model.id)
                                                                             if (targetDir.exists()) {
@@ -543,7 +635,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                                         Toast.makeText(context, context.getString(R.string.toast_model_downloaded), Toast.LENGTH_SHORT).show()
                                                                     } else {
                                                                         Log.e("ProvidersScreen", "Failed to load/extract model from local ZIP for model ${model.id}")
-                                                                        downloadingStates[model.id] = context.getString(R.string.error_prefix, errorMessage ?: "Unknown error")
+                                                                        downloadingStates[model.id] = DownloadState(context.getString(R.string.error_prefix, errorMessage ?: "Unknown error"))
                                                                         Toast.makeText(context, context.getString(R.string.toast_download_failed, errorMessage ?: ""), Toast.LENGTH_LONG).show()
                                                                     }
                                                                     refreshTrigger++
@@ -569,112 +661,10 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                                                 val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
                                                                 val downloadId = dm.enqueue(request)
 
-                                                                downloadingStates[model.id] = context.getString(R.string.progress_downloading)
-
-                                                                scope.launch {
-                                                                    var isDone = false
-                                                                    var isError = false
-                                                                    var errorMessage: String? = null
-                                                                    
-                                                                    while (!isDone && !isError) {
-                                                                        kotlinx.coroutines.delay(1000)
-                                                                        val q = DownloadManager.Query().setFilterById(downloadId)
-                                                                        val c = dm.query(q)
-                                                                        if (c != null && c.moveToFirst()) {
-                                                                            val statusCol = c.getColumnIndex(DownloadManager.COLUMN_STATUS)
-                                                                            if (statusCol != -1) {
-                                                                                val status = c.getInt(statusCol)
-                                                                                when (status) {
-                                                                                    DownloadManager.STATUS_SUCCESSFUL -> {
-                                                                                        isDone = true
-                                                                                    }
-                                                                                    DownloadManager.STATUS_FAILED -> {
-                                                                                        isError = true
-                                                                                        val reasonCol = c.getColumnIndex(DownloadManager.COLUMN_REASON)
-                                                                                        val reason = if (reasonCol != -1) c.getInt(reasonCol) else -1
-                                                                                        errorMessage = "Download failed: status code $reason"
-                                                                                    }
-                                                                                    DownloadManager.STATUS_PAUSED -> {
-                                                                                        // still waiting/paused
-                                                                                    }
-                                                                                    DownloadManager.STATUS_RUNNING -> {
-                                                                                        val totalCol = c.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
-                                                                                        val currentCol = c.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
-                                                                                        if (totalCol != -1 && currentCol != -1) {
-                                                                                            val total = c.getLong(totalCol)
-                                                                                            val current = c.getLong(currentCol)
-                                                                                            if (total > 0) {
-                                                                                                val percent = (current * 100 / total).toInt()
-                                                                                                downloadingStates[model.id] = context.getString(R.string.progress_downloading_percent, percent)
-                                                                                            }
-                                                                                        }
-                                                                                    }
-                                                                                }
-                                                                            }
-                                                                            c.close()
-                                                                        } else {
-                                                                            isError = true
-                                                                            errorMessage = "Download cancelled or failed"
-                                                                        }
-                                                                    }
-                                                                    
-                                                                    if (isError) {
-                                                                        Log.e("ProvidersScreen", "Download failed for model ${model.id}: $errorMessage")
-                                                                        downloadingStates[model.id] = context.getString(R.string.error_prefix, errorMessage ?: "")
-                                                                        Toast.makeText(context, errorMessage ?: "Download failed", Toast.LENGTH_LONG).show()
-                                                                    } else {
-                                                                        val unzipSuccess = withContext(Dispatchers.IO) {
-                                                                            try {
-                                                                                if (model.sha256.isNotEmpty()) {
-                                                                                    downloadingStates[model.id] = context.getString(R.string.progress_verifying)
-                                                                                    val actualSha = calculateSha256(zipFile)
-                                                                                    if (actualSha != model.sha256) {
-                                                                                        Log.e("ProvidersScreen", "Downloaded zip SHA256 mismatch! Expected ${model.sha256}, got $actualSha")
-                                                                                        errorMessage = "Checksum mismatch! Corrupted download."
-                                                                                        return@withContext false
-                                                                                    }
-                                                                                }
-
-                                                                                downloadingStates[model.id] = context.getString(R.string.progress_extracting)
-                                                                                val targetDir = getModelFile(model.id)
-                                                                                if (targetDir.exists()) {
-                                                                                    targetDir.deleteRecursively()
-                                                                                }
-                                                                                targetDir.mkdirs()
-                                                                                zipFile.inputStream().use { input ->
-                                                                                    unzip(input, targetDir)
-                                                                                }
-                                                                                true
-                                                                            } catch (e: Exception) {
-                                                                                Log.e("ProvidersScreen", "Error unzipping model for model ${model.id}", e)
-                                                                                errorMessage = "Extraction failed: ${e.message}"
-                                                                                false
-                                                                            } finally {
-                                                                                zipFile.delete()
-                                                                            }
-                                                                        }
-                                                                        
-                                                                        if (unzipSuccess) {
-                                                                            downloadingStates.remove(model.id)
-                                                                            val targetDir = getModelFile(model.id)
-                                                                            activeModelPath = targetDir.absolutePath
-                                                                            selectedProviderId = "local_ai"
-                                                                            prefs?.edit()
-                                                                                ?.putString(Settings.PREF_ACTIVE_MODEL_PATH, targetDir.absolutePath)
-                                                                                ?.putString(Settings.PREF_WALLPAPER_PROVIDER, "local_ai")
-                                                                                ?.apply()
-                                                                            Toast.makeText(context, context.getString(R.string.toast_model_downloaded), Toast.LENGTH_SHORT).show()
-                                                                        } else {
-                                                                            Log.e("ProvidersScreen", "Extraction failed for model ${model.id}: $errorMessage")
-                                                                            downloadingStates[model.id] = context.getString(R.string.error_prefix, errorMessage ?: "")
-                                                                            Toast.makeText(context, errorMessage ?: "Extraction failed", Toast.LENGTH_LONG).show()
-                                                                        }
-                                                                    }
-                                                                    refreshTrigger++
-                                                                }
+                                                                monitorDownload(model, downloadId, zipFile)
                                                             } catch (e: Exception) {
                                                                 Log.e("ProvidersScreen", "Exception caught during download initiation flow for model '${model.id}'", e)
-                                                                downloadingStates[model.id] = context.getString(R.string.error_prefix, e.localizedMessage ?: "")
+                                                                downloadingStates[model.id] = DownloadState(context.getString(R.string.error_prefix, e.localizedMessage ?: ""))
                                                                 Toast.makeText(context, context.getString(R.string.toast_download_failed, e.message ?: ""), Toast.LENGTH_SHORT).show()
                                                             }
                                                         }
@@ -689,6 +679,74 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                     }
                                 }
                             }
+                            
+                            val currentState = downloadingStates[model.id]
+                            if (!exists && currentState != null) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                val currentStatus = currentState.status
+                                if (currentStatus.startsWith(context.getString(R.string.error_prefix, "").trim())) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = currentStatus,
+                                            color = MaterialTheme.colorScheme.error,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Button(
+                                            onClick = { downloadingStates.remove(model.id) },
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                                contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                            )
+                                        ) {
+                                            Text(stringResource(R.string.retry))
+                                        }
+                                    }
+                                } else {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(20.dp),
+                                                strokeWidth = 2.dp,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Text(
+                                                text = currentStatus,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        }
+                                        if (currentState.downloadId != null) {
+                                            Button(
+                                                onClick = {
+                                                    val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                                                    dm.remove(currentState.downloadId)
+                                                    downloadingStates.remove(model.id)
+                                                    refreshTrigger++
+                                                },
+                                                colors = ButtonDefaults.buttonColors(
+                                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                                )
+                                            ) {
+                                                Text(stringResource(R.string.cancel))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = model.description,

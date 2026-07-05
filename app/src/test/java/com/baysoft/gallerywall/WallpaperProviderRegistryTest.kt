@@ -3,7 +3,6 @@ package com.baysoft.gallerywall
 import android.content.Context
 import android.graphics.Bitmap
 import androidx.preference.PreferenceManager
-import com.baysoft.gallerywall.provider.ColorProvider
 import com.baysoft.gallerywall.provider.LocalAIProvider
 import com.baysoft.gallerywall.provider.ProviderState
 import com.baysoft.gallerywall.provider.WallpaperProvider
@@ -62,7 +61,7 @@ class WallpaperProviderRegistryTest {
 
     @Test
     fun defaultProvider_isAI() {
-        val expected = if (BuildConfig.DEBUG) ColorProvider else LocalAIProvider
+        val expected = LocalAIProvider
         assertSame(expected, WallpaperProviderRegistry.defaultProvider)
     }
 
