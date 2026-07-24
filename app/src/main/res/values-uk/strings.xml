@@ -171,4 +171,8 @@
     <string name="progress_downloading">Завантаження…</string>
     <string name="progress_downloading_percent">Завантаження (%1$d%%)</string>
     <string name="error_prefix">Помилка: %1$s</string>
+
+    <!-- GPU compatibility warning -->
+    <string name="gpu_unsupported_warning">⚠️ GPU цього пристрою не підтримує генерацію зображень ШІ на пристрої. Завантаження моделі не працюватиме на цьому пристрої.</string>
+    <string name="gpu_unsupported_detail">Виявлено: %1$s. Потрібен пристрій з потужнішим GPU (Adreno 6xx+, Mali-G та ін.).</string>
 </resources>

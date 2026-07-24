@@ -59,6 +59,7 @@ import androidx.preference.PreferenceManager
 import androidx.compose.ui.res.stringResource
 import com.baysoft.gallerywall.R
 import com.baysoft.gallerywall.Settings
+import com.baysoft.gallerywall.ml.GpuCapabilityChecker
 import com.baysoft.gallerywall.ml.LocalMLEngine
 import com.baysoft.gallerywall.ui.theme.GalleryWallTheme
 import kotlinx.coroutines.Dispatchers
@@ -90,6 +91,17 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
         mutableStateOf(prefs?.getString(Settings.PREF_WALLPAPER_PROVIDER, "local_ai") ?: "local_ai")
     }
     val downloadingStates = remember { mutableStateMapOf<String, DownloadState>() }
+
+    // GPU capability check — runs once on first composition
+    var gpuCheckResult by remember { mutableStateOf<GpuCapabilityChecker.GpuCheckResult?>(null) }
+    LaunchedEffect(Unit) {
+        if (!isPreview) {
+            gpuCheckResult = withContext(Dispatchers.Default) {
+                GpuCapabilityChecker.check(context)
+            }
+        }
+    }
+    val isGpuSupported = gpuCheckResult?.isSupported != false
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -422,6 +434,35 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
 
                 }
                 Spacer(modifier = Modifier.height(8.dp))
+
+                // GPU unsupported warning banner
+                if (!isGpuSupported) {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        ),
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = stringResource(R.string.gpu_unsupported_warning),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            val detail = gpuCheckResult?.gpuRenderer ?: gpuCheckResult?.reason ?: ""
+                            if (detail.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = stringResource(R.string.gpu_unsupported_detail, detail),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             items(modelsList) { model ->
@@ -545,6 +586,7 @@ fun ProvidersScreen(modifier: Modifier = Modifier) {
                                         ) {
                                             if (model.downloadUrl.isNotEmpty()) {
                                                 Button(
+                                                    enabled = isGpuSupported,
                                                     onClick = {
                                                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
                                                             if (context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {

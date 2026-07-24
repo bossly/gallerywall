@@ -181,4 +181,8 @@
     <string name="progress_downloading">Downloading…</string>
     <string name="progress_downloading_percent">Downloading (%1$d%%)</string>
     <string name="error_prefix">Error: %1$s</string>
+
+    <!-- GPU compatibility warning -->
+    <string name="gpu_unsupported_warning">⚠️ This device\'s GPU is not compatible with on-device AI image generation. Downloading the model will not work on this device.</string>
+    <string name="gpu_unsupported_detail">Detected: %1$s. A device with a more powerful GPU (Adreno 6xx+, Mali-G series, etc.) is required.</string>
 </resources>

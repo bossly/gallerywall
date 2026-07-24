@@ -25,6 +25,14 @@ class LocalMLEngine private constructor() {
      */
     @Synchronized
     fun loadModel(context: Context, modelPath: String): Boolean {
+        // Pre-check: verify GPU/device capability before attempting native model load
+        val gpuCheck = GpuCapabilityChecker.check(context)
+        if (!gpuCheck.isSupported) {
+            Log.e(TAG, "GPU capability check FAILED: ${gpuCheck.reason}")
+            lastLoadError = gpuCheck.reason
+            return false
+        }
+
         val baseDir = File(modelPath)
         if (!baseDir.exists()) {
             Log.e(TAG, "Model directory does not exist at: $modelPath")
@@ -66,7 +74,7 @@ class LocalMLEngine private constructor() {
             Log.e(TAG, "Error loading MediaPipe Image Generator from: $resolvedPath", e)
             val msg = e.toString()
             lastLoadError = if (msg.contains("OpenCL") || msg.contains("clSetPerfHintQCOM") || msg.contains("CalculatorGraph::Run") || msg.contains("FAILED_PRECONDITION")) {
-                "Incompatible hardware: MediaPipe Stable Diffusion requires a physical Android GPU with OpenCL support. Emulators are not supported."
+                "Unsupported GPU: This device does not have compatible OpenCL support for on-device Stable Diffusion. A device with a newer GPU (e.g. Adreno 6xx+) is required."
             } else {
                 "Failed to initialize MediaPipe: ${e.localizedMessage}"
             }
