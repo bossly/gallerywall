@@ -9,34 +9,32 @@ import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.RenderEffect
 import android.graphics.Shader
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.toColorInt
 
 /**
  * Shared rendering helpers for [com.baysoft.gallerywall.provider.WallpaperProvider] implementations.
  */
 object WallpaperGenerator {
 
-    /** Hex string `#RRGGBB` for prefs/UI (opaque). */
-    fun colorToHexString(rgb: Int): String =
-        String.format("#%06X", 0xFFFFFF and rgb)
-
     internal fun parseColors(hexLine: String): List<Int> {
         val parsed = hexLine.split(',').mapNotNull { segment ->
             val s = segment.trim()
             if (s.isEmpty()) return@mapNotNull null
             try {
-                android.graphics.Color.parseColor(if (s.startsWith("#")) s else "#$s")
+                if (s.startsWith("#")) s else "#$s".toColorInt()
             } catch (_: IllegalArgumentException) {
                 null
             }
         }
-        return parsed.ifEmpty { defaultColors() }
+        return parsed.ifEmpty { defaultColors() } as List<Int>
     }
 
     private fun defaultColors(): List<Int> {
         return listOf(
-            android.graphics.Color.parseColor("#6750A4"),
-            android.graphics.Color.parseColor("#625B71"),
-            android.graphics.Color.parseColor("#7D5260")
+            "#6750A4".toColorInt(),
+            "#625B71".toColorInt(),
+            "#7D5260".toColorInt()
         )
     }
 
@@ -48,13 +46,13 @@ object WallpaperGenerator {
     }
 
     internal fun renderSolid(w: Int, h: Int, color: Int): Bitmap {
-        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val bmp = createBitmap(w, h, Bitmap.Config.ARGB_8888)
         Canvas(bmp).drawColor(color)
         return bmp
     }
 
     internal fun renderGradient(w: Int, h: Int, colors: List<Int>): Bitmap {
-        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val bmp = createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
         val stops = when {
             colors.isEmpty() -> defaultColors()
@@ -79,7 +77,7 @@ object WallpaperGenerator {
 
     internal fun renderTiledWallpaper(context: Context, tile: Bitmap): Bitmap {
         val (w, h) = resolveSize(context)
-        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val bmp = createBitmap(w, h)
         val canvas = Canvas(bmp)
         val paint = Paint().apply {
             isAntiAlias = false
@@ -115,29 +113,30 @@ object WallpaperGenerator {
                 0f, 0f, 0f, 1f, 0f
             )))
             "blur" -> {
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                    val outBmp = Bitmap.createBitmap(bitmap.width, bitmap.height, bitmap.config ?: Bitmap.Config.ARGB_8888)
-                    val canvas = Canvas(outBmp)
-                    val paint = Paint()
-                    try {
-                        val method = paint.javaClass.getMethod("setRenderEffect", RenderEffect::class.java)
-                        method.invoke(paint, RenderEffect.createBlurEffect(15f, 15f, Shader.TileMode.CLAMP))
-                    } catch (e: Exception) {
-                        // Ignore if reflection fails
-                    }
-                    canvas.drawBitmap(bitmap, 0f, 0f, paint)
-                    bitmap.recycle()
-                    outBmp
-                } else {
-                    bitmap
+                val outBmp = createBitmap(
+                    bitmap.width,
+                    bitmap.height,
+                    bitmap.config ?: Bitmap.Config.ARGB_8888
+                )
+                val canvas = Canvas(outBmp)
+                val paint = Paint()
+                try {
+                    val method = paint.javaClass.getMethod("setRenderEffect", RenderEffect::class.java)
+                    method.invoke(paint, RenderEffect.createBlurEffect(15f, 15f, Shader.TileMode.CLAMP))
+                } catch (e: Exception) {
+                    // Ignore if reflection fails
                 }
+                canvas.drawBitmap(bitmap, 0f, 0f, paint)
+                bitmap.recycle()
+                outBmp
             }
             else -> bitmap
         }
     }
 
     private fun applyColorMatrix(bitmap: Bitmap, matrix: ColorMatrix): Bitmap {
-        val outBmp = Bitmap.createBitmap(bitmap.width, bitmap.height, bitmap.config ?: Bitmap.Config.ARGB_8888)
+        val outBmp =
+            createBitmap(bitmap.width, bitmap.height, bitmap.config ?: Bitmap.Config.ARGB_8888)
         val canvas = Canvas(outBmp)
         val paint = Paint().apply {
             colorFilter = ColorMatrixColorFilter(matrix)
