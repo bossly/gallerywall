@@ -66,12 +66,9 @@ class GalleryWall {
         internal fun buildWorkConstraints(settings: Settings): Constraints {
             val builder = Constraints.Builder()
             builder.setRequiredNetworkType(NetworkType.NOT_REQUIRED)
-            if (settings.constraintCharging) {
-                builder.setRequiresCharging(true)
-            }
-            if (settings.constraintIdle) {
-                builder.setRequiresDeviceIdle(true)
-            }
+            // Runtime constraints (charging, idle, battery low, model ready) are evaluated
+            // inside GalleryWallRefreshWorker via AutomationLogger so that USB connections,
+            // 100% battery level, and screen-off states are handled accurately and logged.
             return builder.build()
         }
 

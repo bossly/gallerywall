@@ -175,4 +175,38 @@
     <!-- GPU compatibility warning -->
     <string name="gpu_unsupported_warning">⚠️ GPU цього пристрою не підтримує генерацію зображень ШІ на пристрої. Завантаження моделі не працюватиме на цьому пристрої.</string>
     <string name="gpu_unsupported_detail">Виявлено: %1$s. Потрібен пристрій з потужнішим GPU (Adreno 6xx+, Mali-G та ін.).</string>
+
+    <!-- Automation History -->
+    <string name="automation_history_title">Історія автоматизації</string>
+    <string name="automation_history_summary">Журнал фонових запусків зміни шпалер та перевірок умов.</string>
+    <string name="clear_history">Очистити історію</string>
+    <string name="clear_history_confirm_title">Очистити історію автоматизації?</string>
+    <string name="clear_history_confirm_message">Це видалить усі попередні записи виконання автоматизації.</string>
+    <string name="clear_history_done">Історію очищено</string>
+    <string name="status_success">Успішно</string>
+    <string name="status_skipped">Пропущено</string>
+    <string name="status_failed">Помилка</string>
+    <string name="status_running">Перевірка / Виконання</string>
+    <string name="constraint_status_charging">Заряджається</string>
+    <string name="constraint_status_not_charging">Не заряджається</string>
+    <string name="constraint_status_idle">Бездіяльність</string>
+    <string name="constraint_status_active">Активний</string>
+    <string name="constraint_status_battery">Батарея: %1$d%%</string>
+    <string name="constraint_status_model_ready">Модель готова</string>
+    <string name="constraint_status_model_missing">Немає моделі</string>
+    <string name="reason_success">Шпалери успішно згенеровано та застосовано</string>
+    <string name="reason_skipped_power_save">Пропущено: увімкнено режим енергозбереження</string>
+    <string name="reason_skipped_battery_level">Пропущено: низький заряд батареї (%1$d%% &lt; 15%%)</string>
+    <string name="reason_skipped_charging">Пропущено: пристрій не заряджається</string>
+    <string name="reason_skipped_idle">Пропущено: пристрій використовується (не бездіє)</string>
+    <string name="reason_skipped_no_model">Пропущено: модель локального ШІ не завантажена або не активована</string>
+    <string name="no_history_records">Історія автоматизації порожня</string>
+    <string name="no_history_records_summary">Записи з\'являтимуться тут щоразу, коли перевірятиметься або виконуватиметься фонова автоматизація шпалер.</string>
+    <string name="history_record_prompt_label">Запит: %1$s</string>
+    <string name="history_record_duration_label">Тривалість: %1$s</string>
+    <string name="history_total_runs">Всього</string>
+    <string name="history_successful_runs">Успішно</string>
+    <string name="history_skipped_runs">Пропущено</string>
+    <string name="history_failed_runs">Помилка</string>
+    <string name="history_details_title">Деталі виконання</string>
 </resources>

@@ -185,4 +185,38 @@
     <!-- GPU compatibility warning -->
     <string name="gpu_unsupported_warning">⚠️ This device\'s GPU is not compatible with on-device AI image generation. Downloading the model will not work on this device.</string>
     <string name="gpu_unsupported_detail">Detected: %1$s. A device with a more powerful GPU (Adreno 6xx+, Mali-G series, etc.) is required.</string>
+
+    <!-- Automation History -->
+    <string name="automation_history_title">Automation History</string>
+    <string name="automation_history_summary">Log of background wallpaper executions and constraint checks.</string>
+    <string name="clear_history">Clear History</string>
+    <string name="clear_history_confirm_title">Clear Automation History?</string>
+    <string name="clear_history_confirm_message">This will delete all past automation execution records.</string>
+    <string name="clear_history_done">History cleared</string>
+    <string name="status_success">Success</string>
+    <string name="status_skipped">Skipped</string>
+    <string name="status_failed">Failed</string>
+    <string name="status_running">Evaluating / Running</string>
+    <string name="constraint_status_charging">Charging</string>
+    <string name="constraint_status_not_charging">Not Charging</string>
+    <string name="constraint_status_idle">Idle</string>
+    <string name="constraint_status_active">Active</string>
+    <string name="constraint_status_battery">Battery: %1$d%%</string>
+    <string name="constraint_status_model_ready">Model Ready</string>
+    <string name="constraint_status_model_missing">No Model</string>
+    <string name="reason_success">Wallpaper generated and applied successfully</string>
+    <string name="reason_skipped_power_save">Skipped: Power saving mode is active</string>
+    <string name="reason_skipped_battery_level">Skipped: Battery is low (%1$d%% &lt; 15%%)</string>
+    <string name="reason_skipped_charging">Skipped: Device is not charging</string>
+    <string name="reason_skipped_idle">Skipped: Device is active / not idle</string>
+    <string name="reason_skipped_no_model">Skipped: On-device AI model is not downloaded or active</string>
+    <string name="no_history_records">No automation history yet</string>
+    <string name="no_history_records_summary">Records will appear here whenever background wallpaper automation is evaluated or executed.</string>
+    <string name="history_record_prompt_label">Prompt: %1$s</string>
+    <string name="history_record_duration_label">Duration: %1$s</string>
+    <string name="history_total_runs">Total</string>
+    <string name="history_successful_runs">Success</string>
+    <string name="history_skipped_runs">Skipped</string>
+    <string name="history_failed_runs">Failed</string>
+    <string name="history_details_title">Execution Details</string>
 </resources>

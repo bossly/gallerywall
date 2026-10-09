@@ -3,8 +3,10 @@ package com.baysoft.gallerywall.ui
 import android.Manifest
 import android.os.Build
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -20,6 +22,7 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -32,6 +35,17 @@ import com.baysoft.gallerywall.ui.theme.GalleryWallTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier) {
+    var showHistoryScreen by remember { mutableStateOf(false) }
+
+    if (showHistoryScreen) {
+        BackHandler { showHistoryScreen = false }
+        AutomationHistoryScreen(
+            onNavigateBack = { showHistoryScreen = false },
+            modifier = modifier
+        )
+        return
+    }
+
     val context = LocalContext.current
     val isPreview = LocalInspectionMode.current
     val prefs = remember { if (isPreview) null else PreferenceManager.getDefaultSharedPreferences(context) }
@@ -152,6 +166,9 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         onPostProcessingFilterChange = {
             postProcessingFilter = it
             saveAndReschedule()
+        },
+        onNavigateToHistory = {
+            showHistoryScreen = true
         }
     )
 }
@@ -175,7 +192,8 @@ fun SettingsScreenContent(
     constraintIdle: Boolean,
     onConstraintIdleChange: (Boolean) -> Unit,
     postProcessingFilter: String,
-    onPostProcessingFilterChange: (String) -> Unit
+    onPostProcessingFilterChange: (String) -> Unit,
+    onNavigateToHistory: () -> Unit = {}
 ) {
     val focusManager = LocalFocusManager.current
 
@@ -187,17 +205,35 @@ fun SettingsScreenContent(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = stringResource(R.string.title_settings),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text = stringResource(R.string.settings_summary),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.title_settings),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = stringResource(R.string.settings_summary),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                )
+            }
+            IconButton(
+                onClick = onNavigateToHistory,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_history),
+                    contentDescription = stringResource(R.string.automation_history_title),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
 
         // Master Switch Card
         Card(

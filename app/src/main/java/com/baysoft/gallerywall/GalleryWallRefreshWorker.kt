@@ -20,43 +20,84 @@ class GalleryWallRefreshWorker(
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-        Log.d(TAG, "Automated wallpaper refresh started")
+        Log.d(TAG, "Automated wallpaper refresh worker triggered")
         val context = applicationContext
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
         val settings = Settings(prefs)
+        val startTime = System.currentTimeMillis()
 
-        // Check battery constraint: skip refresh if battery is low (<15%) or power saving is on
-        if (settings.constraintBatteryLow && isBatteryLowOrSaving(context)) {
-            Log.i(TAG, "Skipping wallpaper refresh: battery is low or power saving mode is active.")
+        val db = com.baysoft.gallerywall.data.WallpaperDatabase.getInstance(context)
+        val historyRepo = com.baysoft.gallerywall.data.AutomationHistoryRepository(db.automationHistoryDao())
+
+        val evaluation = AutomationLogger.evaluateConstraints(context)
+        val initialRecord = AutomationLogger.createInitialRecord(context, evaluation, startTime)
+        val recordId = historyRepo.logRecord(initialRecord)
+
+        if (!evaluation.canStart) {
+            Log.i(TAG, "Skipping wallpaper refresh: ${evaluation.skipReason}")
             return@withContext Result.success()
         }
 
-        val bitmap = GalleryWall.createWallpaperBitmap(context)
-        if (bitmap == null) {
-            Log.w(TAG, "No bitmap produced")
-            return@withContext Result.retry()
-        }
+        try {
+            val bitmap = GalleryWall.createWallpaperBitmap(context)
+            if (bitmap == null) {
+                Log.w(TAG, "No bitmap produced")
+                val duration = System.currentTimeMillis() - startTime
+                historyRepo.updateRecord(
+                    initialRecord.copy(
+                        id = recordId,
+                        status = com.baysoft.gallerywall.data.AutomationHistoryEntity.STATUS_FAILED,
+                        statusReason = context.getString(R.string.error_generation_failed),
+                        durationMs = duration
+                    )
+                )
+                return@withContext Result.retry()
+            }
 
-        val autoApply = settings.autoApplyWallpaper
-        if (autoApply) {
-            GalleryWall.updateWallpaper(context, bitmap)
-        }
-        
-        val filePath = GalleryWall.recordWallpaperSync(context, bitmap, applied = autoApply)
+            val autoApply = settings.autoApplyWallpaper
+            if (autoApply) {
+                GalleryWall.updateWallpaper(context, bitmap)
+            }
 
-        if (settings.notification) {
-            val notificationManager =
-                context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-            val notification = GalleryWallNotifications.buildRefreshNotification(
-                context, 
-                bitmap, 
-                filePath = filePath,
-                isAlreadyApplied = autoApply
+            val filePath = GalleryWall.recordWallpaperSync(context, bitmap, applied = autoApply)
+
+            if (settings.notification) {
+                val notificationManager =
+                    context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+                val notification = GalleryWallNotifications.buildRefreshNotification(
+                    context,
+                    bitmap,
+                    filePath = filePath,
+                    isAlreadyApplied = autoApply
+                )
+                notificationManager.notify(GalleryWallNotifications.NOTIFICATION_ID, notification)
+            }
+
+            val duration = System.currentTimeMillis() - startTime
+            historyRepo.updateRecord(
+                initialRecord.copy(
+                    id = recordId,
+                    status = com.baysoft.gallerywall.data.AutomationHistoryEntity.STATUS_SUCCESS,
+                    statusReason = context.getString(R.string.reason_success),
+                    wallpaperFilePath = filePath,
+                    durationMs = duration
+                )
             )
-            notificationManager.notify(GalleryWallNotifications.NOTIFICATION_ID, notification)
-        }
 
-        Result.success()
+            Result.success()
+        } catch (e: Exception) {
+            Log.e(TAG, "Automated wallpaper refresh failed", e)
+            val duration = System.currentTimeMillis() - startTime
+            historyRepo.updateRecord(
+                initialRecord.copy(
+                    id = recordId,
+                    status = com.baysoft.gallerywall.data.AutomationHistoryEntity.STATUS_FAILED,
+                    statusReason = e.message ?: context.getString(R.string.error_generation_failed),
+                    durationMs = duration
+                )
+            )
+            Result.retry()
+        }
     }
 
     private fun isBatteryLowOrSaving(context: Context): Boolean {

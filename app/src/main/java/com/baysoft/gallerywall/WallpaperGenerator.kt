@@ -22,12 +22,12 @@ object WallpaperGenerator {
             val s = segment.trim()
             if (s.isEmpty()) return@mapNotNull null
             try {
-                if (s.startsWith("#")) s else "#$s".toColorInt()
+                (if (s.startsWith("#")) s else "#$s").toColorInt()
             } catch (_: IllegalArgumentException) {
                 null
             }
         }
-        return parsed.ifEmpty { defaultColors() } as List<Int>
+        return parsed.ifEmpty { defaultColors() }
     }
 
     private fun defaultColors(): List<Int> {
