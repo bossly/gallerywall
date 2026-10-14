@@ -41,7 +41,7 @@ If you run into a bug or miss a feature, please [open an issue](https://github.c
 
 GalleryWall supports a modular strategy pattern for adding custom wallpaper generators. Developers can register custom providers (for example, remote cloud generators powered by the **Firebase AI SDK** / **Vertex AI Imagen**) using the compile-time and runtime registry.
 
-For a detailed step-by-step walkthrough on creating your own custom wallpaper provider, see the [Custom Wallpaper Provider Guide](../custom_provider.md).
+For a detailed step-by-step walkthrough on creating your own custom wallpaper provider, see the [Custom Wallpaper Provider Guide](custom_provider.md).
 
 ---
 
